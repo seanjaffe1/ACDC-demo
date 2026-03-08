@@ -1,0 +1,10 @@
+graph_dir: data/graphs
+out_dir: checkpoints/pointnet
+struct: lv
+
+latent_dim: 64
+num_points: 2500
+epochs: 200
+batch_size: 8
+lr: 3e-4
+weight_decay: 1e-4

@@ -1,0 +1,17 @@
+graph_dir: data/graphs
+out_dir: checkpoints/main
+struct: lv
+
+# Model
+hidden_dim: 128
+latent_dim: 64
+n_encoder_layers: 4
+n_flow_layers: 4
+in_node_dim: 1
+
+# Training
+epochs: 200
+batch_size: 8
+lr: 3e-4
+weight_decay: 1e-4
+kl_weight: 0.001

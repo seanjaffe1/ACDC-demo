@@ -1,0 +1,4 @@
+graph_dir: data/graphs
+out_dir: checkpoints/pca
+struct: lv
+n_components: 50
