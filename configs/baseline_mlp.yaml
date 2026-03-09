@@ -1,3 +1,7 @@
+wandb_project: acdc-cardiac-diffusion
+wandb_run_name: baseline-mlp-flow
+wandb_entity: null
+
 graph_dir: data/graphs
 out_dir: checkpoints/mlp
 struct: lv

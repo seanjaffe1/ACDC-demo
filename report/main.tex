@@ -1,0 +1,410 @@
+\documentclass{article}
+
+% NeurIPS 2024 style
+\usepackage[final]{neurips_2024}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{natbib}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage[draft]{graphicx}  % remove [draft] once figure files exist
+\usepackage{subcaption}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{multirow}
+% Convenience macros
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\SE}{\mathrm{SE}(3)}
+\newcommand{\SO}{\mathrm{SO}(3)}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+
+% -----------------------------------------------------------------------
+
+\title{Equivariant Flow Matching for Generative Cardiac Shape Modelling}
+
+\author{%
+  Sean Jaffe \\
+  \texttt{TODO: affiliation}
+}
+
+\begin{document}
+
+\maketitle
+
+% -----------------------------------------------------------------------
+\begin{abstract}
+\todo{Write after results are in. Key claims to support:
+(1) SE(3)-equivariant mesh diffusion outperforms all four baselines on
+Chamfer distance and 1-NNA;
+(2) ejection fraction error under 5\% absolute;
+(3) latent codes linearly separate the five ACDC pathology classes.
+Aim for 150--200 words.}
+\end{abstract}
+
+% -----------------------------------------------------------------------
+\section{Introduction}
+\label{sec:intro}
+
+\todo{3--4 paragraphs covering:}
+\begin{itemize}
+    \item Clinical motivation: cardiac shape is a biomarker for disease
+          (DCM, HCM, myocardial infarction).
+    \item Gap: existing statistical shape models (PCA) are linear and
+          voxel diffusion models discard surface topology.
+    \item Our contribution: SE(3)-equivariant GNN combined with
+          flow matching directly on cardiac meshes.
+    \item Summary of results.
+\end{itemize}
+
+% -----------------------------------------------------------------------
+\section{Background}
+\label{sec:background}
+
+\subsection{Statistical Shape Models}
+\label{sec:bg_ssm}
+
+Statistical shape models (SSMs) represent shape variation within a
+population by applying principal component analysis (PCA) to a set of
+registered point correspondences~\cite{cootes1995active}.
+Given $N$ shapes with $V$ vertices each, we flatten each shape to a
+vector $\mathbf{s}_i \in \R^{3V}$ and compute the empirical covariance.
+New shapes are sampled as
+\begin{equation}
+    \hat{\mathbf{s}} = \bar{\mathbf{s}} + \mathbf{P}\mathbf{b},
+    \quad \mathbf{b} \sim \mathcal{N}(\mathbf{0}, \boldsymbol{\Lambda}),
+\end{equation}
+where $\bar{\mathbf{s}}$ is the mean shape, $\mathbf{P}$ are the
+principal modes, and $\boldsymbol{\Lambda}$ is the diagonal matrix of
+eigenvalues.
+SSMs are computationally efficient but capture only linear variation,
+failing to represent non-linear deformation modes such as the asymmetric
+remodelling seen in hypertrophic cardiomyopathy.
+
+\subsection{Geometric Deep Learning and SE(3) Equivariance}
+\label{sec:bg_geo}
+
+A function $f$ is \emph{equivariant} under a symmetry group $G$ if
+\begin{equation}
+    f(g \cdot \mathbf{x}) = g \cdot f(\mathbf{x})
+    \quad \forall\, g \in G,\; \mathbf{x} \in \mathcal{X}.
+\end{equation}
+For 3-D point sets, the relevant group is $\SE = \SO \ltimes \R^3$,
+the group of rotations and translations in three dimensions.
+A neural network operating on point positions that is equivariant to
+$\SE$ will produce geometrically consistent outputs regardless of the
+coordinate frame in which the input is expressed.
+
+We use the \emph{$E(n)$ Equivariant Graph Neural Network} (EGNN)
+of~\citet{satorras2021n} as our equivariant backbone.
+Each EGNN layer jointly updates scalar node features $\mathbf{h}_i$
+and equivariant coordinates $\mathbf{x}_i$:
+\begin{align}
+    \mathbf{m}_{ij} &= \phi_e\!\left(\mathbf{h}_i,\, \mathbf{h}_j,\,
+                       \norm{\mathbf{x}_i - \mathbf{x}_j}^2\right),
+    \label{eq:egnn_msg} \\
+    \mathbf{x}_i    &\leftarrow \mathbf{x}_i
+                       + \sum_{j \neq i}
+                         (\mathbf{x}_i - \mathbf{x}_j)\,
+                         \phi_x(\mathbf{m}_{ij}),
+    \label{eq:egnn_coord} \\
+    \mathbf{h}_i    &\leftarrow \phi_h\!\left(\mathbf{h}_i,\,
+                       \sum_{j}\mathbf{m}_{ij}\right),
+    \label{eq:egnn_node}
+\end{align}
+where $\phi_e$, $\phi_x$, and $\phi_h$ are multi-layer perceptrons.
+Because the coordinate update in~\eqref{eq:egnn_coord} depends only on
+relative positions and the scalar $\phi_x$, the overall mapping
+$(\mathbf{H}, \mathbf{X}) \mapsto (\mathbf{H}', \mathbf{X}')$ is
+equivariant to $\SE$ by construction.
+
+\subsection{Diffusion Models and Flow Matching}
+\label{sec:bg_flow}
+
+Score-based diffusion models~\cite{song2020score} learn to reverse a
+forward noising process, but typically require thousands of denoising
+steps at inference time.
+\emph{Flow matching}~\cite{lipman2022flow} instead defines a
+deterministic probability path between a noise distribution $p_0$ and
+the data distribution $p_1$, parameterising the corresponding velocity
+field $v_\theta(\mathbf{x}_t, t)$ that transports samples from $p_0$
+to $p_1$.
+
+Under the \emph{Optimal Transport} (OT) path~\cite{albergo2023building},
+interpolating trajectories are straight lines:
+\begin{equation}
+    \mathbf{x}_t = (1 - t)\,\mathbf{x}_0 + t\,\mathbf{x}_1,
+    \quad t \sim \mathcal{U}[0, 1],
+\end{equation}
+yielding the simple regression objective
+\begin{equation}
+    \mathcal{L}_\text{CFM}(\theta)
+    = \mathbb{E}_{t,\, \mathbf{x}_0 \sim p_0,\, \mathbf{x}_1 \sim p_1}
+      \left[ \norm{v_\theta(\mathbf{x}_t, t, \mathbf{z})
+             - (\mathbf{x}_1 - \mathbf{x}_0)}^2 \right],
+    \label{eq:cfm_loss}
+\end{equation}
+where $\mathbf{z}$ is an optional conditioning variable.
+Samples are generated by integrating $v_\theta$ from $t=0$ to $t=1$
+using a standard ODE solver (Euler or RK4).
+Compared to score-based methods, flow matching is faster to train
+(single forward pass per sample) and requires far fewer integration
+steps at inference.
+
+% -----------------------------------------------------------------------
+\section{Method}
+\label{sec:method}
+
+\subsection{Data and Preprocessing}
+\label{sec:method_data}
+
+We use the \emph{Automated Cardiac Diagnosis Challenge} (ACDC)
+dataset~\cite{bernard2018deep}, which provides cine-MRI volumes with
+expert segmentation masks for 100 subjects spanning five pathology
+classes: normal (NOR), myocardial infarction (MINF), dilated
+cardiomyopathy (DCM), hypertrophic cardiomyopathy (HCM), and right
+ventricular abnormality (RV).
+Segmentations label the left ventricle (LV, label~3), right ventricle
+(RV cavity, label~1), and myocardium (Myo, label~2) at end-diastole
+(ED) and end-systole (ES).
+
+\paragraph{Mesh extraction.}
+For each structure at each frame, we apply the marching cubes
+algorithm~\cite{lorensen1987marching} to the binary segmentation mask,
+using the physical voxel spacing as the step size to produce meshes in
+millimetre coordinates.
+We then apply ten iterations of Laplacian smoothing to reduce
+staircase artefacts, and decimate each mesh to approximately $2{,}500$
+vertices via quadric edge collapse, targeting a balance between
+geometric fidelity and computational cost.
+
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ed_lv_single.pdf}
+        \caption{ED LV mesh after marching cubes, Laplacian smoothing,
+                 and quadric decimation (${\sim}2{,}500$ vertices).}
+        \label{fig:mesh_single}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ed_es_comparison.pdf}
+        \caption{Same subject at end-diastole (blue, larger) and
+                 end-systole (red, contracted). Volume difference gives
+                 the ejection fraction.}
+        \label{fig:mesh_ed_es}
+    \end{subfigure}
+    \caption{Representative LV surface meshes extracted from ACDC
+             segmentation masks.}
+    \label{fig:meshes}
+\end{figure}
+
+\paragraph{Template registration.}
+To establish vertex correspondence across subjects we select a single
+reference subject and register all others to it.
+Registration proceeds in two stages: (i)~a coarse Procrustes
+alignment using the Kabsch algorithm, and (ii)~refinement with
+Iterative Closest Point (ICP).
+After alignment, each mesh is centred at the origin by subtracting
+its centroid, removing translation as a degree of freedom.
+
+\paragraph{Graph construction.}
+Each registered mesh is stored as a PyTorch Geometric
+\texttt{Data} object containing vertex positions
+$\mathbf{X} \in \R^{V \times 3}$, a $k$-nearest-neighbour edge index
+($k = 8$) computed in the registered coordinate frame, the face
+connectivity for surface-area and volume calculations, and an integer
+pathology label $y \in \{0, \ldots, 4\}$.
+
+\subsection{Model Architecture}
+\label{sec:method_arch}
+
+Our model consists of two learned components: a graph encoder that maps
+a cardiac mesh to a latent code, and a flow-matching velocity field
+conditioned on that code.
+Figure~\ref{fig:architecture} provides an overview.
+
+\begin{figure}[h]
+    \centering
+    \todo{Insert architecture diagram: mesh $\to$ encoder $\to$ $\mathbf{z}$
+          $\to$ velocity field $\to$ generated mesh}
+    \caption{Model architecture. The EGNN encoder compresses a cardiac
+             mesh graph into a latent code $\mathbf{z}$. The EGNN
+             velocity field, conditioned on $\mathbf{z}$ and time $t$,
+             transports a noise cloud to a realistic cardiac mesh via
+             OT flow matching.}
+    \label{fig:architecture}
+\end{figure}
+
+\paragraph{EGNN Encoder.}
+The encoder is a four-layer EGNN followed by mean-and-max global
+pooling, producing a Gaussian posterior
+$q_\phi(\mathbf{z} \mid \mathcal{G}) = \mathcal{N}(\boldsymbol{\mu},
+\text{diag}(\boldsymbol{\sigma}^2))$
+with $\boldsymbol{\mu}, \log\boldsymbol{\sigma} \in \R^{64}$.
+Initial node features are set to a constant vector
+(no semantic node attributes are available), so all information must be
+inferred from the geometric structure of the graph.
+
+\paragraph{Equivariant Velocity Field.}
+The velocity field $v_\theta(\mathbf{x}_t, t, \mathbf{z})$ is a
+four-layer EGNN where each node's input feature is the concatenation
+of a sinusoidal time embedding and the conditioning code $\mathbf{z}$
+projected to the hidden dimension.
+The network outputs a velocity vector in $\R^3$ for each vertex.
+Because position updates in EGNN depend only on relative coordinates,
+the velocity field inherits $\SE$-equivariance: rotating the input
+mesh rotates the predicted velocities by the same rotation.
+
+\paragraph{Training Objective.}
+The full objective is
+\begin{equation}
+    \mathcal{L} = \mathcal{L}_\text{CFM}(\theta)
+                + \beta\, D_\text{KL}\!\left(
+                    q_\phi(\mathbf{z} \mid \mathcal{G})
+                    \;\|\;
+                    \mathcal{N}(\mathbf{0}, \mathbf{I})
+                  \right),
+    \label{eq:total_loss}
+\end{equation}
+where $\mathcal{L}_\text{CFM}$ is the OT flow matching loss from
+Equation~\eqref{eq:cfm_loss} and $\beta = 10^{-3}$.
+
+\subsection{Baselines}
+\label{sec:method_baselines}
+
+We compare against four baselines, each designed to ablate a specific
+modelling choice.
+
+\textbf{Baseline~1: PCA Shape Model.}
+Classical linear SSM fit to flattened vertex positions.
+Justifies the use of deep learning at all.
+
+\textbf{Baseline~2: Voxel Diffusion.}
+OT flow matching applied to binary segmentation volumes on a $32^3$
+grid, using a 3-D U-Net velocity field.
+Justifies the mesh representation over voxel grids.
+
+\textbf{Baseline~3: PointNet++ VAE.}
+PointNet++ encoder with a FoldingNet decoder trained as a VAE
+(no diffusion/flow).
+Justifies the distributional modelling component.
+
+\textbf{Baseline~4: Non-equivariant Flow Matching.}
+Identical architecture to our main model, but EGNN layers replaced by
+standard MLP message passing; random rotation augmentation is applied
+during training to compensate.
+This is the \emph{critical} ablation: it directly validates the
+geometric deep learning contribution.
+
+% -----------------------------------------------------------------------
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Setup}
+\todo{Dataset split (70/15/15), hardware, training hyperparameters
+(epochs=200, lr=3e-4, batch=8, hidden=128, latent=64).
+Reference W\&B project for full logs.}
+
+\subsection{Reconstruction Quality}
+\todo{Table: Chamfer distance (mm) and Hausdorff-95 (mm) for all models.
+Expected finding: equivariant model $<$ MLP baseline $<$ PointNet++ $<$
+PCA $\ll$ voxel.}
+
+\begin{table}[h]
+\centering
+\caption{Reconstruction quality on the LV test set. Lower is better.
+         $\pm$ denotes standard deviation across test subjects.}
+\label{tab:reconstruction}
+\begin{tabular}{lcccc}
+\toprule
+Model & Chamfer $\downarrow$ & Hausdorff-95 $\downarrow$ \\
+\midrule
+PCA shape model (B1)       & \todo{} & \todo{} \\
+Voxel diffusion (B2)       & \todo{} & \todo{} \\
+PointNet++ VAE (B3)        & \todo{} & \todo{} \\
+MLP flow matching (B4)     & \todo{} & \todo{} \\
+\midrule
+\textbf{Ours (EGNN + CFM)} & \todo{} & \todo{} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Clinical Validity}
+\todo{Table: EF error mean $\pm$ std, \% subjects with error $\leq 5\%$,
+myocardial volume conservation.}
+
+\begin{table}[h]
+\centering
+\caption{Clinical validity metrics.}
+\label{tab:clinical}
+\begin{tabular}{lccc}
+\toprule
+Model & EF error (abs \%) $\downarrow$ & EF $\leq 5\%$ (\%) $\uparrow$ & Myo vol change (\%) $\downarrow$ \\
+\midrule
+PCA (B1)               & \todo{} & \todo{} & \todo{} \\
+MLP flow (B4)          & \todo{} & \todo{} & \todo{} \\
+\textbf{Ours}          & \todo{} & \todo{} & \todo{} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Distribution Quality}
+\todo{Table: 1-NNA (target $\approx 0.5$) and pathology probe accuracy
+(\%) for all generative models.}
+
+\begin{table}[h]
+\centering
+\caption{Distribution quality. 1-NNA closer to 0.5 is better.}
+\label{tab:generation}
+\begin{tabular}{lcc}
+\toprule
+Model & 1-NNA $\rightarrow 0.5$ & Pathology acc. (\%) $\uparrow$ \\
+\midrule
+PCA (B1)               & \todo{} & \todo{} \\
+MLP flow (B4)          & \todo{} & \todo{} \\
+\textbf{Ours}          & \todo{} & \todo{} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Ablation: Equivariance Under Rotation}
+\todo{Show performance of main model vs.\ B4 as a function of training
+set size (e.g., 10\%, 25\%, 50\%, 100\% of training data).
+Expected finding: equivariant model degrades more gracefully in
+low-data regime.}
+
+% -----------------------------------------------------------------------
+\section{Discussion}
+\label{sec:discussion}
+
+\todo{3--4 paragraphs covering:
+\begin{itemize}
+    \item What the results say about the value of SE(3) equivariance.
+    \item Limitations: single-structure, ED/ES only (not full cycle),
+          Procrustes registration assumes rigid alignment.
+    \item Future work: multi-structure joint model, 4D temporal modelling,
+          learned registration.
+\end{itemize}}
+
+% -----------------------------------------------------------------------
+\section{Conclusion}
+\label{sec:conclusion}
+
+\todo{4--6 sentences. Restate problem, method, and three key findings.}
+
+% -----------------------------------------------------------------------
+\bibliographystyle{abbrvnat}
+\bibliography{references}
+
+\end{document}

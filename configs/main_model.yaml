@@ -1,3 +1,7 @@
+wandb_project: acdc-cardiac-diffusion
+wandb_run_name: main-egnn-flow
+wandb_entity: null  # set to your wandb username/team, or leave null to use default
+
 graph_dir: data/graphs
 out_dir: checkpoints/main
 struct: lv

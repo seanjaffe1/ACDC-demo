@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/opt/anaconda3/envs/acdc/bin/pip install torch)",
+      "Bash(/opt/anaconda3/envs/acdc/bin/python -m ipykernel install --user --name acdc --display-name \"Python 3.11 \\(acdc\\)\")",
+      "Bash(chmod +x /Users/seanjaffe/Documents/ACDC-demo/run.sh)",
+      "Bash(pdflatex -interaction=nonstopmode main.tex)",
+      "Bash(bibtex main)"
+    ]
+  }
+}

@@ -45,8 +45,7 @@ def decimate_mesh(mesh: trimesh.Trimesh, target_faces: int) -> trimesh.Trimesh:
     """Decimate to approximately target_faces faces."""
     if len(mesh.faces) <= target_faces:
         return mesh
-    ratio = target_faces / len(mesh.faces)
-    mesh = mesh.simplify_quadric_decimation(int(len(mesh.faces) * ratio))
+    mesh = mesh.simplify_quadric_decimation(face_count=target_faces)
     return mesh
 
 

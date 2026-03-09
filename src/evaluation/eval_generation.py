@@ -16,10 +16,15 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import wandb
 from torch_geometric.loader import DataLoader
 
 from src.evaluation.metrics import one_nearest_neighbour_accuracy, linear_probe_accuracy
 from src.training.train_main import CardiacGraphDataset
+from src.utils.acdc_loader import PATHOLOGY_CLASSES
+
+
+LABEL_NAMES = list(PATHOLOGY_CLASSES.keys())  # ["NOR", "MINF", "DCM", "HCM", "RV"]
 
 
 def collect_latents_and_labels(encoder, loader, device) -> tuple[np.ndarray, np.ndarray]:
@@ -44,7 +49,6 @@ def generate_shapes(encoder, flow_model, loader, device, steps: int = 50) -> tup
             template = batch.clone()
             template.pos = torch.randn_like(batch.pos)
             gen_pos = flow_model.sample(template, z, steps=steps)
-            # Flatten per-graph shapes
             for i in range(batch.num_graphs):
                 mask = batch.batch == i
                 real_shapes.append(batch.pos[mask].cpu().numpy().flatten())
@@ -59,7 +63,17 @@ def main():
     parser.add_argument("--struct", default="lv")
     parser.add_argument("--out", default="results/generation.json")
     parser.add_argument("--n_generate", type=int, default=100)
+    parser.add_argument("--wandb_project", default="acdc-cardiac-diffusion")
+    parser.add_argument("--wandb_entity", default=None)
     args = parser.parse_args()
+
+    wandb.init(
+        project=args.wandb_project,
+        entity=args.wandb_entity or None,
+        name="eval-generation",
+        job_type="evaluation",
+        tags=["eval", "generation", "1nna", "latent-space"],
+    )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     graph_dir = Path(args.graph_dir)
@@ -88,18 +102,48 @@ def main():
     real_shapes, gen_shapes = generate_shapes(encoder, flow_model, loader, device)
     nna = one_nearest_neighbour_accuracy(real_shapes, gen_shapes)
 
-    # Pathology separation
+    # Pathology separation (linear probe)
     latents, labels = collect_latents_and_labels(encoder, loader, device)
     probe_acc = linear_probe_accuracy(latents, labels, n_classes=5)
 
     results = {
         "1NNA": float(nna),
-        "1NNA_note": "0.5=perfect, 1.0=mode collapse",
+        "1NNA_note": "0.5=perfect generation, 1.0=mode collapse",
         "pathology_probe_accuracy": float(probe_acc),
     }
     print(json.dumps(results, indent=2))
+
+    # W&B: scalar summaries
+    wandb.run.summary.update({
+        "1NNA": float(nna),
+        "pathology_probe_accuracy": float(probe_acc),
+    })
+    wandb.log({
+        "eval/1NNA": float(nna),
+        "eval/pathology_probe_accuracy": float(probe_acc),
+    })
+
+    # W&B: latent space scatter (2D UMAP if available, else t-SNE)
+    if len(latents) >= 5:
+        try:
+            import umap
+            reducer = umap.UMAP(n_components=2, random_state=42)
+            embedding = reducer.fit_transform(latents)
+        except ImportError:
+            from sklearn.manifold import TSNE
+            embedding = TSNE(n_components=2, random_state=42, perplexity=min(30, len(latents) - 1)).fit_transform(latents)
+
+        scatter_table = wandb.Table(columns=["x", "y", "pathology"])
+        for (x, y), lbl in zip(embedding, labels):
+            name = LABEL_NAMES[int(lbl)] if int(lbl) < len(LABEL_NAMES) else str(lbl)
+            scatter_table.add_data(float(x), float(y), name)
+        wandb.log({
+            "latent_space": wandb.plot.scatter(scatter_table, "x", "y", title="Latent Space by Pathology")
+        })
+
     with open(out_path, "w") as f:
         json.dump(results, f, indent=2)
+    wandb.finish()
 
 
 if __name__ == "__main__":

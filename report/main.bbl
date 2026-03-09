@@ -1,0 +1,57 @@
+\begin{thebibliography}{7}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Albergo and Vanden-Eijnden(2023)]{albergo2023building}
+M.~S. Albergo and E.~Vanden-Eijnden.
+\newblock Building normalizing flows with stochastic interpolants.
+\newblock \emph{International Conference on Learning Representations (ICLR)},
+  2023.
+
+\bibitem[Bernard et~al.(2018)Bernard, Lalande, Zotti, Cervenansky, Yang, Heng,
+  Cetin, Lekadir, Camara, Ballester, et~al.]{bernard2018deep}
+O.~Bernard, A.~Lalande, C.~Zotti, F.~Cervenansky, X.~Yang, P.-A. Heng,
+  I.~Cetin, K.~Lekadir, O.~Camara, M.~A.~G. Ballester, et~al.
+\newblock Deep learning techniques for automatic {MRI} cardiac multi-structures
+  segmentation and diagnosis: Is the problem solved?
+\newblock \emph{IEEE Transactions on Medical Imaging}, 37\penalty0
+  (11):\penalty0 2514--2525, 2018.
+
+\bibitem[Cootes et~al.(1995)Cootes, Taylor, Cooper, and
+  Graham]{cootes1995active}
+T.~F. Cootes, C.~J. Taylor, D.~H. Cooper, and J.~Graham.
+\newblock Active shape models—their training and application.
+\newblock \emph{Computer Vision and Image Understanding}, 61\penalty0
+  (1):\penalty0 38--59, 1995.
+
+\bibitem[Lipman et~al.(2023)Lipman, Chen, Ben-Hamu, Nickel, and
+  Le]{lipman2022flow}
+Y.~Lipman, R.~T.~Q. Chen, H.~Ben-Hamu, M.~Nickel, and M.~Le.
+\newblock Flow matching for generative modeling.
+\newblock \emph{International Conference on Learning Representations (ICLR)},
+  2023.
+
+\bibitem[Lorensen and Cline(1987)]{lorensen1987marching}
+W.~E. Lorensen and H.~E. Cline.
+\newblock Marching cubes: A high resolution {3D} surface construction
+  algorithm.
+\newblock \emph{ACM SIGGRAPH Computer Graphics}, 21\penalty0 (4):\penalty0
+  163--169, 1987.
+
+\bibitem[Satorras et~al.(2021)Satorras, Hoogeboom, and Welling]{satorras2021n}
+V.~G. Satorras, E.~Hoogeboom, and M.~Welling.
+\newblock {E(n)} equivariant graph neural networks.
+\newblock \emph{International Conference on Machine Learning (ICML)}, 2021.
+
+\bibitem[Song et~al.(2021)Song, Sohl-Dickstein, Kingma, Kumar, Ermon, and
+  Poole]{song2020score}
+Y.~Song, J.~Sohl-Dickstein, D.~P. Kingma, A.~Kumar, S.~Ermon, and B.~Poole.
+\newblock Score-based generative modeling through stochastic differential
+  equations.
+\newblock \emph{International Conference on Learning Representations (ICLR)},
+  2021.
+
+\end{thebibliography}

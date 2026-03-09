@@ -1,3 +1,7 @@
+wandb_project: acdc-cardiac-diffusion
+wandb_run_name: baseline-voxel-diffusion
+wandb_entity: null
+
 graph_dir: data/graphs
 out_dir: checkpoints/voxel
 struct: lv

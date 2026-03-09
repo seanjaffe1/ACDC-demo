@@ -1,0 +1,24 @@
+% Minimal NeurIPS-compatible style for local compilation.
+% Replace with the official file from neurips.cc when submitting.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{neurips_2024}[2024/01/01 NeurIPS 2024 style]
+
+\DeclareOption{final}{}
+\DeclareOption{preprint}{}
+\DeclareOption{nonatbib}{}
+\ProcessOptions\relax
+
+\RequirePackage[letterpaper,top=1in,bottom=1in,left=1.5in,right=1.5in]{geometry}
+\RequirePackage{times}
+\RequirePackage[T1]{fontenc}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt plus 1pt}
+\RequirePackage{titlesec}
+\titleformat{\section}{\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\itshape}{\thesubsubsection}{1em}{}
+\RequirePackage{caption}
+\captionsetup{font=small,labelfont=bf}
+\renewenvironment{abstract}{%
+  \begin{center}\textbf{Abstract}\end{center}\begin{quote}\small}{%
+  \end{quote}}

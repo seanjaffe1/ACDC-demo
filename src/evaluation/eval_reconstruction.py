@@ -2,6 +2,7 @@
 Evaluate reconstruction quality for main model and all baselines.
 
 Outputs a JSON results file with Chamfer distance and Hausdorff distance per model.
+All results are logged to W&B as a summary table.
 
 Usage:
     python -m src.evaluation.eval_reconstruction \
@@ -17,6 +18,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import wandb
 from torch_geometric.loader import DataLoader
 
 from src.training.train_main import CardiacGraphDataset
@@ -26,7 +28,6 @@ from src.evaluation.metrics import chamfer_distance_numpy, hausdorff_distance
 def eval_main_model(checkpoint_path: Path, val_loader: DataLoader, device: torch.device, cfg: dict) -> dict:
     from src.models.encoder import GraphEncoder
     from src.models.flow_matching import FlowMatchingModel
-    from src.training.train_main import make_noise_data
 
     ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
     encoder = GraphEncoder(hidden_dim=cfg["hidden_dim"], latent_dim=cfg["latent_dim"], n_layers=cfg["n_encoder_layers"]).to(device)
@@ -50,8 +51,12 @@ def eval_main_model(checkpoint_path: Path, val_loader: DataLoader, device: torch
                 chamfers.append(chamfer_distance_numpy(pred, tgt))
                 hausdorffs.append(hausdorff_distance(pred, tgt))
 
-    return {"chamfer_mean": float(np.mean(chamfers)), "chamfer_std": float(np.std(chamfers)),
-            "hausdorff_mean": float(np.mean(hausdorffs)), "hausdorff_std": float(np.std(hausdorffs))}
+    return {
+        "chamfer_mean": float(np.mean(chamfers)),
+        "chamfer_std": float(np.std(chamfers)),
+        "hausdorff_mean": float(np.mean(hausdorffs)),
+        "hausdorff_std": float(np.std(hausdorffs)),
+    }
 
 
 def eval_pca_model(pca_path: Path, val_loader: DataLoader) -> dict:
@@ -67,8 +72,12 @@ def eval_pca_model(pca_path: Path, val_loader: DataLoader) -> dict:
             chamfers.append(chamfer_distance_numpy(recon, tgt))
             hausdorffs.append(hausdorff_distance(recon, tgt))
 
-    return {"chamfer_mean": float(np.mean(chamfers)), "chamfer_std": float(np.std(chamfers)),
-            "hausdorff_mean": float(np.mean(hausdorffs)), "hausdorff_std": float(np.std(hausdorffs))}
+    return {
+        "chamfer_mean": float(np.mean(chamfers)),
+        "chamfer_std": float(np.std(chamfers)),
+        "hausdorff_mean": float(np.mean(hausdorffs)),
+        "hausdorff_std": float(np.std(hausdorffs)),
+    }
 
 
 def main():
@@ -76,7 +85,17 @@ def main():
     parser.add_argument("--graph_dir", default="data/graphs")
     parser.add_argument("--checkpoint_dir", default="checkpoints")
     parser.add_argument("--out", default="results/reconstruction.json")
+    parser.add_argument("--wandb_project", default="acdc-cardiac-diffusion")
+    parser.add_argument("--wandb_entity", default=None)
     args = parser.parse_args()
+
+    run = wandb.init(
+        project=args.wandb_project,
+        entity=args.wandb_entity or None,
+        name="eval-reconstruction",
+        job_type="evaluation",
+        tags=["eval", "reconstruction"],
+    )
 
     graph_dir = Path(args.graph_dir)
     ckpt_dir = Path(args.checkpoint_dir)
@@ -95,22 +114,33 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     results = {}
 
-    # PCA
     pca_path = ckpt_dir / "pca" / "pca_model.pkl"
     if pca_path.exists():
         results["pca"] = eval_pca_model(pca_path, val_loader)
         print(f"PCA: {results['pca']}")
 
-    # Main equivariant model
     main_path = ckpt_dir / "main" / "best_model.pt"
     if main_path.exists():
         ckpt = torch.load(main_path, map_location="cpu", weights_only=False)
         results["main"] = eval_main_model(main_path, val_loader, device, ckpt["cfg"])
         print(f"Main: {results['main']}")
 
+    # Log a W&B comparison table
+    if results:
+        table = wandb.Table(columns=["model", "chamfer_mean_mm", "chamfer_std_mm", "hausdorff_mean_mm", "hausdorff_std_mm"])
+        for model_name, m in results.items():
+            table.add_data(model_name, m["chamfer_mean"], m["chamfer_std"], m["hausdorff_mean"], m["hausdorff_std"])
+        wandb.log({"reconstruction_comparison": table})
+
+        # Also log flat metrics for easy filtering
+        for model_name, m in results.items():
+            for k, v in m.items():
+                wandb.run.summary[f"{model_name}/{k}"] = v
+
     with open(out_path, "w") as f:
         json.dump(results, f, indent=2)
     print(f"Results saved to {out_path}")
+    wandb.finish()
 
 
 if __name__ == "__main__":

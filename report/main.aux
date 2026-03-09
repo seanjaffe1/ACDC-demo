@@ -1,0 +1,76 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{cootes1995active}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
+\newlabel{sec:intro}{{1}{1}{Introduction}{section.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Background}{1}{section.2}\protected@file@percent }
+\newlabel{sec:background}{{2}{1}{Background}{section.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Statistical Shape Models}{1}{subsection.2.1}\protected@file@percent }
+\newlabel{sec:bg_ssm}{{2.1}{1}{Statistical Shape Models}{subsection.2.1}{}}
+\citation{satorras2021n}
+\citation{song2020score}
+\citation{lipman2022flow}
+\citation{albergo2023building}
+\citation{bernard2018deep}
+\citation{lorensen1987marching}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Geometric Deep Learning and SE(3) Equivariance}{2}{subsection.2.2}\protected@file@percent }
+\newlabel{sec:bg_geo}{{2.2}{2}{Geometric Deep Learning and SE(3) Equivariance}{subsection.2.2}{}}
+\newlabel{eq:egnn_msg}{{3}{2}{Geometric Deep Learning and SE(3) Equivariance}{equation.2.3}{}}
+\newlabel{eq:egnn_coord}{{4}{2}{Geometric Deep Learning and SE(3) Equivariance}{equation.2.4}{}}
+\newlabel{eq:egnn_node}{{5}{2}{Geometric Deep Learning and SE(3) Equivariance}{equation.2.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Diffusion Models and Flow Matching}{2}{subsection.2.3}\protected@file@percent }
+\newlabel{sec:bg_flow}{{2.3}{2}{Diffusion Models and Flow Matching}{subsection.2.3}{}}
+\newlabel{eq:cfm_loss}{{7}{2}{Diffusion Models and Flow Matching}{equation.2.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Method}{2}{section.3}\protected@file@percent }
+\newlabel{sec:method}{{3}{2}{Method}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Data and Preprocessing}{2}{subsection.3.1}\protected@file@percent }
+\newlabel{sec:method_data}{{3.1}{2}{Data and Preprocessing}{subsection.3.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Mesh extraction.}{3}{paragraph*.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:mesh_single}{{1a}{3}{ED LV mesh after marching cubes, Laplacian smoothing, and quadric decimation (${\sim }2{,}500$ vertices)}{figure.caption.2}{}}
+\newlabel{sub@fig:mesh_single}{{a}{3}{ED LV mesh after marching cubes, Laplacian smoothing, and quadric decimation (${\sim }2{,}500$ vertices)}{figure.caption.2}{}}
+\newlabel{fig:mesh_ed_es}{{1b}{3}{Same subject at end-diastole (blue, larger) and end-systole (red, contracted). Volume difference gives the ejection fraction}{figure.caption.2}{}}
+\newlabel{sub@fig:mesh_ed_es}{{b}{3}{Same subject at end-diastole (blue, larger) and end-systole (red, contracted). Volume difference gives the ejection fraction}{figure.caption.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Representative LV surface meshes extracted from ACDC segmentation masks.}}{3}{figure.caption.2}\protected@file@percent }
+\newlabel{fig:meshes}{{1}{3}{Representative LV surface meshes extracted from ACDC segmentation masks}{figure.caption.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Template registration.}{3}{paragraph*.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Graph construction.}{3}{paragraph*.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Model Architecture}{3}{subsection.3.2}\protected@file@percent }
+\newlabel{sec:method_arch}{{3.2}{3}{Model Architecture}{subsection.3.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Model architecture. The EGNN encoder compresses a cardiac mesh graph into a latent code $\mathbf  {z}$. The EGNN velocity field, conditioned on $\mathbf  {z}$ and time $t$, transports a noise cloud to a realistic cardiac mesh via OT flow matching.}}{3}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:architecture}{{2}{3}{Model architecture. The EGNN encoder compresses a cardiac mesh graph into a latent code $\mathbf {z}$. The EGNN velocity field, conditioned on $\mathbf {z}$ and time $t$, transports a noise cloud to a realistic cardiac mesh via OT flow matching}{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{EGNN Encoder.}{4}{paragraph*.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Equivariant Velocity Field.}{4}{paragraph*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Training Objective.}{4}{paragraph*.8}\protected@file@percent }
+\newlabel{eq:total_loss}{{8}{4}{Training Objective}{equation.3.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Baselines}{4}{subsection.3.3}\protected@file@percent }
+\newlabel{sec:method_baselines}{{3.3}{4}{Baselines}{subsection.3.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Experiments}{4}{section.4}\protected@file@percent }
+\newlabel{sec:experiments}{{4}{4}{Experiments}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Setup}{4}{subsection.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Reconstruction Quality}{4}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Clinical Validity}{4}{subsection.4.3}\protected@file@percent }
+\bibstyle{abbrvnat}
+\bibdata{references}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Reconstruction quality on the LV test set. Lower is better. $\pm $ denotes standard deviation across test subjects.}}{5}{table.caption.9}\protected@file@percent }
+\newlabel{tab:reconstruction}{{1}{5}{Reconstruction quality on the LV test set. Lower is better. $\pm $ denotes standard deviation across test subjects}{table.caption.9}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Clinical validity metrics.}}{5}{table.caption.10}\protected@file@percent }
+\newlabel{tab:clinical}{{2}{5}{Clinical validity metrics}{table.caption.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Distribution Quality}{5}{subsection.4.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Distribution quality. 1-NNA closer to 0.5 is better.}}{5}{table.caption.11}\protected@file@percent }
+\newlabel{tab:generation}{{3}{5}{Distribution quality. 1-NNA closer to 0.5 is better}{table.caption.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Ablation: Equivariance Under Rotation}{5}{subsection.4.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Discussion}{5}{section.5}\protected@file@percent }
+\newlabel{sec:discussion}{{5}{5}{Discussion}{section.5}{}}
+\bibcite{albergo2023building}{{1}{2023}{{Albergo and Vanden-Eijnden}}{{}}}
+\bibcite{bernard2018deep}{{2}{2018}{{Bernard et~al.}}{{Bernard, Lalande, Zotti, Cervenansky, Yang, Heng, Cetin, Lekadir, Camara, Ballester, et~al.}}}
+\bibcite{cootes1995active}{{3}{1995}{{Cootes et~al.}}{{Cootes, Taylor, Cooper, and Graham}}}
+\bibcite{lipman2022flow}{{4}{2023}{{Lipman et~al.}}{{Lipman, Chen, Ben-Hamu, Nickel, and Le}}}
+\bibcite{lorensen1987marching}{{5}{1987}{{Lorensen and Cline}}{{}}}
+\bibcite{satorras2021n}{{6}{2021}{{Satorras et~al.}}{{Satorras, Hoogeboom, and Welling}}}
+\bibcite{song2020score}{{7}{2021}{{Song et~al.}}{{Song, Sohl-Dickstein, Kingma, Kumar, Ermon, and Poole}}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{6}{section.6}\protected@file@percent }
+\newlabel{sec:conclusion}{{6}{6}{Conclusion}{section.6}{}}
+\gdef \@abspage@last{6}
