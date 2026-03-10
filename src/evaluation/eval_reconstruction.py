@@ -63,12 +63,15 @@ def eval_pca_model(pca_path: Path, val_loader: DataLoader) -> dict:
     with open(pca_path, "rb") as f:
         model = pickle.load(f)
 
+    v_max = model.mean_shape.shape[0] // 3
     chamfers, hausdorffs = [], []
     for batch in val_loader:
         for i in range(batch.num_graphs):
             mask = batch.batch == i
             tgt = batch.pos[mask].numpy()
-            recon = model.reconstruct(tgt)
+            v_orig = tgt.shape[0]
+            tgt_padded = np.pad(tgt, ((0, v_max - v_orig), (0, 0))) if v_orig < v_max else tgt
+            recon = model.reconstruct(tgt_padded)[:v_orig]
             chamfers.append(chamfer_distance_numpy(recon, tgt))
             hausdorffs.append(hausdorff_distance(recon, tgt))
 

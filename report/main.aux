@@ -1,5 +1,19 @@
 \relax 
 \providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyperFirstAtBeginDocument{\AtBeginDocument}
+\HyperFirstAtBeginDocument{\ifx\hyper@anchor\@undefined
+\global\let\oldcontentsline\contentsline
+\gdef\contentsline#1#2#3#4{\oldcontentsline{#1}{#2}{#3}}
+\global\let\oldnewlabel\newlabel
+\gdef\newlabel#1#2{\newlabelxx{#1}#2}
+\gdef\newlabelxx#1#2#3#4#5#6{\oldnewlabel{#1}{{#2}{#3}}}
+\AtEndDocument{\ifx\hyper@anchor\@undefined
+\let\contentsline\oldcontentsline
+\let\newlabel\oldnewlabel
+\fi}
+\fi}
+\global\let\hyper@last\relax 
+\gdef\HyperFirstAtBeginDocument#1{#1}
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
 \citation{cootes1995active}
@@ -14,7 +28,6 @@
 \citation{lipman2022flow}
 \citation{albergo2023building}
 \citation{bernard2018deep}
-\citation{lorensen1987marching}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Geometric Deep Learning and SE(3) Equivariance}{2}{subsection.2.2}\protected@file@percent }
 \newlabel{sec:bg_geo}{{2.2}{2}{Geometric Deep Learning and SE(3) Equivariance}{subsection.2.2}{}}
 \newlabel{eq:egnn_msg}{{3}{2}{Geometric Deep Learning and SE(3) Equivariance}{equation.2.3}{}}
@@ -23,24 +36,25 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Diffusion Models and Flow Matching}{2}{subsection.2.3}\protected@file@percent }
 \newlabel{sec:bg_flow}{{2.3}{2}{Diffusion Models and Flow Matching}{subsection.2.3}{}}
 \newlabel{eq:cfm_loss}{{7}{2}{Diffusion Models and Flow Matching}{equation.2.7}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3}Method}{2}{section.3}\protected@file@percent }
-\newlabel{sec:method}{{3}{2}{Method}{section.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Data and Preprocessing}{2}{subsection.3.1}\protected@file@percent }
-\newlabel{sec:method_data}{{3.1}{2}{Data and Preprocessing}{subsection.3.1}{}}
+\citation{lorensen1987marching}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Method}{3}{section.3}\protected@file@percent }
+\newlabel{sec:method}{{3}{3}{Method}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Data and Preprocessing}{3}{subsection.3.1}\protected@file@percent }
+\newlabel{sec:method_data}{{3.1}{3}{Data and Preprocessing}{subsection.3.1}{}}
 \@writefile{toc}{\contentsline {paragraph}{Mesh extraction.}{3}{paragraph*.1}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{fig:mesh_single}{{1a}{3}{ED LV mesh after marching cubes, Laplacian smoothing, and quadric decimation (${\sim }2{,}500$ vertices)}{figure.caption.2}{}}
-\newlabel{sub@fig:mesh_single}{{a}{3}{ED LV mesh after marching cubes, Laplacian smoothing, and quadric decimation (${\sim }2{,}500$ vertices)}{figure.caption.2}{}}
-\newlabel{fig:mesh_ed_es}{{1b}{3}{Same subject at end-diastole (blue, larger) and end-systole (red, contracted). Volume difference gives the ejection fraction}{figure.caption.2}{}}
-\newlabel{sub@fig:mesh_ed_es}{{b}{3}{Same subject at end-diastole (blue, larger) and end-systole (red, contracted). Volume difference gives the ejection fraction}{figure.caption.2}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Representative LV surface meshes extracted from ACDC segmentation masks.}}{3}{figure.caption.2}\protected@file@percent }
-\newlabel{fig:meshes}{{1}{3}{Representative LV surface meshes extracted from ACDC segmentation masks}{figure.caption.2}{}}
+\newlabel{fig:mesh_single}{{1a}{3}{ED LV mesh after marching cubes, Laplacian smoothing, and quadric decimation (${\sim }2{,}500$ vertices).\relax }{figure.caption.2}{}}
+\newlabel{sub@fig:mesh_single}{{a}{3}{ED LV mesh after marching cubes, Laplacian smoothing, and quadric decimation (${\sim }2{,}500$ vertices).\relax }{figure.caption.2}{}}
+\newlabel{fig:mesh_ed_es}{{1b}{3}{Same subject at end-diastole (blue, larger) and end-systole (red, contracted). Volume difference gives the ejection fraction.\relax }{figure.caption.2}{}}
+\newlabel{sub@fig:mesh_ed_es}{{b}{3}{Same subject at end-diastole (blue, larger) and end-systole (red, contracted). Volume difference gives the ejection fraction.\relax }{figure.caption.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Representative LV surface meshes extracted from ACDC segmentation masks.\relax }}{3}{figure.caption.2}\protected@file@percent }
+\newlabel{fig:meshes}{{1}{3}{Representative LV surface meshes extracted from ACDC segmentation masks.\relax }{figure.caption.2}{}}
 \@writefile{toc}{\contentsline {paragraph}{Template registration.}{3}{paragraph*.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Graph construction.}{3}{paragraph*.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Model Architecture}{3}{subsection.3.2}\protected@file@percent }
-\newlabel{sec:method_arch}{{3.2}{3}{Model Architecture}{subsection.3.2}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Model architecture. The EGNN encoder compresses a cardiac mesh graph into a latent code $\mathbf  {z}$. The EGNN velocity field, conditioned on $\mathbf  {z}$ and time $t$, transports a noise cloud to a realistic cardiac mesh via OT flow matching.}}{3}{figure.caption.5}\protected@file@percent }
-\newlabel{fig:architecture}{{2}{3}{Model architecture. The EGNN encoder compresses a cardiac mesh graph into a latent code $\mathbf {z}$. The EGNN velocity field, conditioned on $\mathbf {z}$ and time $t$, transports a noise cloud to a realistic cardiac mesh via OT flow matching}{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Model Architecture}{4}{subsection.3.2}\protected@file@percent }
+\newlabel{sec:method_arch}{{3.2}{4}{Model Architecture}{subsection.3.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Model architecture. The EGNN encoder compresses a cardiac mesh graph into a latent code $\mathbf  {z}$. The EGNN velocity field, conditioned on $\mathbf  {z}$ and time $t$, transports a noise cloud to a realistic cardiac mesh via OT flow matching.\relax }}{4}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:architecture}{{2}{4}{Model architecture. The EGNN encoder compresses a cardiac mesh graph into a latent code $\mathbf {z}$. The EGNN velocity field, conditioned on $\mathbf {z}$ and time $t$, transports a noise cloud to a realistic cardiac mesh via OT flow matching.\relax }{figure.caption.5}{}}
 \@writefile{toc}{\contentsline {paragraph}{EGNN Encoder.}{4}{paragraph*.6}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Equivariant Velocity Field.}{4}{paragraph*.7}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Training Objective.}{4}{paragraph*.8}\protected@file@percent }
@@ -50,20 +64,27 @@
 \@writefile{toc}{\contentsline {section}{\numberline {4}Experiments}{4}{section.4}\protected@file@percent }
 \newlabel{sec:experiments}{{4}{4}{Experiments}{section.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Setup}{4}{subsection.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Reconstruction Quality}{4}{subsection.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Clinical Validity}{4}{subsection.4.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Reconstruction Quality}{5}{subsection.4.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Reconstruction quality on the LV validation set. Lower is better. $\pm $ denotes standard deviation across subjects. \textdagger \nobreakspace  {}results pending full baseline training runs.\relax }}{5}{table.caption.9}\protected@file@percent }
+\newlabel{tab:reconstruction}{{1}{5}{Reconstruction quality on the LV validation set. Lower is better. $\pm $ denotes standard deviation across subjects. \textdagger ~results pending full baseline training runs.\relax }{table.caption.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Clinical Validity}{5}{subsection.4.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Clinical validity metrics for the main model. EF error is mean absolute percentage error against ground-truth ejection fraction. Myo vol change is the mean percentage change in myocardial volume between generated ED and ES shapes. \textdagger \nobreakspace  {}results pending full baseline training runs.\relax }}{5}{table.caption.10}\protected@file@percent }
+\newlabel{tab:clinical}{{2}{5}{Clinical validity metrics for the main model. EF error is mean absolute percentage error against ground-truth ejection fraction. Myo vol change is the mean percentage change in myocardial volume between generated ED and ES shapes. \textdagger ~results pending full baseline training runs.\relax }{table.caption.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Distribution Quality}{5}{subsection.4.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Distribution quality. 1-NNA closer to 0.5 is better (0.5 = perfect, 1.0 = mode collapse). Pathology accuracy is from a linear probe on the latent codes, trained with cross-validation. \textdagger \nobreakspace  {}results pending full baseline training runs.\relax }}{6}{table.caption.11}\protected@file@percent }
+\newlabel{tab:generation}{{3}{6}{Distribution quality. 1-NNA closer to 0.5 is better (0.5 = perfect, 1.0 = mode collapse). Pathology accuracy is from a linear probe on the latent codes, trained with cross-validation. \textdagger ~results pending full baseline training runs.\relax }{table.caption.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Ablation: Equivariance Under Rotation}{6}{subsection.4.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Hyperparameter Ablations}{6}{subsection.4.6}\protected@file@percent }
+\newlabel{sec:ablations}{{4.6}{6}{Hyperparameter Ablations}{subsection.4.6}{}}
+\@writefile{toc}{\contentsline {paragraph}{KL weight $\beta $.}{6}{paragraph*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{KL warmup.}{6}{paragraph*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Latent dimension.}{6}{paragraph*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Flow model depth.}{6}{paragraph*.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Best configuration.}{6}{paragraph*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Discussion}{6}{section.5}\protected@file@percent }
+\newlabel{sec:discussion}{{5}{6}{Discussion}{section.5}{}}
 \bibstyle{abbrvnat}
 \bibdata{references}
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Reconstruction quality on the LV test set. Lower is better. $\pm $ denotes standard deviation across test subjects.}}{5}{table.caption.9}\protected@file@percent }
-\newlabel{tab:reconstruction}{{1}{5}{Reconstruction quality on the LV test set. Lower is better. $\pm $ denotes standard deviation across test subjects}{table.caption.9}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Clinical validity metrics.}}{5}{table.caption.10}\protected@file@percent }
-\newlabel{tab:clinical}{{2}{5}{Clinical validity metrics}{table.caption.10}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Distribution Quality}{5}{subsection.4.4}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Distribution quality. 1-NNA closer to 0.5 is better.}}{5}{table.caption.11}\protected@file@percent }
-\newlabel{tab:generation}{{3}{5}{Distribution quality. 1-NNA closer to 0.5 is better}{table.caption.11}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Ablation: Equivariance Under Rotation}{5}{subsection.4.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}Discussion}{5}{section.5}\protected@file@percent }
-\newlabel{sec:discussion}{{5}{5}{Discussion}{section.5}{}}
 \bibcite{albergo2023building}{{1}{2023}{{Albergo and Vanden-Eijnden}}{{}}}
 \bibcite{bernard2018deep}{{2}{2018}{{Bernard et~al.}}{{Bernard, Lalande, Zotti, Cervenansky, Yang, Heng, Cetin, Lekadir, Camara, Ballester, et~al.}}}
 \bibcite{cootes1995active}{{3}{1995}{{Cootes et~al.}}{{Cootes, Taylor, Cooper, and Graham}}}
@@ -71,6 +92,8 @@
 \bibcite{lorensen1987marching}{{5}{1987}{{Lorensen and Cline}}{{}}}
 \bibcite{satorras2021n}{{6}{2021}{{Satorras et~al.}}{{Satorras, Hoogeboom, and Welling}}}
 \bibcite{song2020score}{{7}{2021}{{Song et~al.}}{{Song, Sohl-Dickstein, Kingma, Kumar, Ermon, and Poole}}}
-\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{6}{section.6}\protected@file@percent }
-\newlabel{sec:conclusion}{{6}{6}{Conclusion}{section.6}{}}
-\gdef \@abspage@last{6}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Hyperparameter ablations on the LV validation set. Baseline uses 4 flow layers, latent dim 64, $\beta {=}10^{-3}$, no warmup. Best per-column values are \textbf  {bold}. $\dagger $\nobreakspace  {}Combined A2+A4 is the configuration used as ``Ours''.\relax }}{7}{table.caption.17}\protected@file@percent }
+\newlabel{tab:ablations}{{4}{7}{Hyperparameter ablations on the LV validation set. Baseline uses 4 flow layers, latent dim 64, $\beta {=}10^{-3}$, no warmup. Best per-column values are \textbf {bold}. $\dagger $~Combined A2+A4 is the configuration used as ``Ours''.\relax }{table.caption.17}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{7}{section.6}\protected@file@percent }
+\newlabel{sec:conclusion}{{6}{7}{Conclusion}{section.6}{}}
+\gdef \@abspage@last{7}

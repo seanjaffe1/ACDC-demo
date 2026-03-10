@@ -31,7 +31,10 @@ class CardiacGraphDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx) -> Data:
         entry = self.entries[idx]
-        return torch.load(self.graph_dir / entry["file"], weights_only=False)
+        data = torch.load(self.graph_dir / entry["file"], weights_only=False)
+        # Normalise positions to zero-mean unit-std so CFM loss is O(1)
+        data.pos = (data.pos - data.pos.mean(0)) / (data.pos.std() + 1e-6)
+        return data
 
 
 def make_noise_data(real: Data) -> Data:
@@ -44,9 +47,14 @@ def make_noise_data(real: Data) -> Data:
 def train(cfg: dict):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    # Build a run name that reflects key hyperparams if not explicitly set
+    run_name = cfg.get("wandb_run_name", "main-egnn-flow")
+    if cfg.get("_name_suffix"):
+        run_name = f"{run_name}-{cfg['_name_suffix']}"
+
     run = wandb.init(
         project=cfg.get("wandb_project", "acdc-cardiac-diffusion"),
-        name=cfg.get("wandb_run_name", "main-egnn-flow"),
+        name=run_name,
         entity=cfg.get("wandb_entity") or None,
         config=cfg,
         tags=["main", "egnn", "flow-matching"],
@@ -90,9 +98,15 @@ def train(cfg: dict):
     out_dir.mkdir(parents=True, exist_ok=True)
 
     best_val_loss = float("inf")
-    kl_weight = cfg.get("kl_weight", 0.001)
+    kl_weight_max = cfg.get("kl_weight", 0.001)
+    kl_anneal_epochs = cfg.get("kl_anneal_epochs", 0)  # 0 = no annealing
 
     for epoch in range(1, cfg["epochs"] + 1):
+        # KL annealing: linearly ramp from 0 to kl_weight_max over kl_anneal_epochs
+        if kl_anneal_epochs > 0:
+            kl_weight = kl_weight_max * min(1.0, epoch / kl_anneal_epochs)
+        else:
+            kl_weight = kl_weight_max
         encoder.train()
         flow_model.train()
         train_loss = train_cfm = train_kl = 0.0
@@ -141,7 +155,7 @@ def train(cfg: dict):
         val_cfm /= val_n
 
         lr_now = scheduler.get_last_lr()[0]
-        print(f"Epoch {epoch:03d} | train {train_loss:.4f} (cfm {train_cfm:.4f} kl {train_kl:.4f}) | val {val_loss:.4f} | lr {lr_now:.2e}")
+        print(f"Epoch {epoch:03d} | train {train_loss:.4f} (cfm {train_cfm:.4f} kl {train_kl:.4f}) | val {val_loss:.4f} | lr {lr_now:.2e} | kl_w {kl_weight:.4f}")
 
         wandb.log({
             "epoch": epoch,
@@ -151,6 +165,7 @@ def train(cfg: dict):
             "val/loss": val_loss,
             "val/cfm_loss": val_cfm,
             "lr": lr_now,
+            "kl_weight": kl_weight,
         })
 
         if val_loss < best_val_loss:
@@ -174,10 +189,25 @@ def train(cfg: dict):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="configs/main_model.yaml")
+    parser.add_argument(
+        "--set", nargs="*", metavar="KEY=VALUE",
+        help="Override config values, e.g. --set kl_weight=0.01 lr=0.0001 out_dir=checkpoints/exp1"
+    )
     args = parser.parse_args()
 
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
+
+    # Apply CLI overrides, auto-casting to int/float where possible
+    for item in (args.set or []):
+        key, _, raw = item.partition("=")
+        for cast in (int, float):
+            try:
+                raw = cast(raw); break
+            except ValueError:
+                pass
+        cfg[key] = raw
+
     train(cfg)
 
 

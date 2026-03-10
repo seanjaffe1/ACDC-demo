@@ -46,7 +46,7 @@ class GraphEncoder(nn.Module):
             pooled = global_max_pool(h, batch)
 
         mu = self.fc_mu(pooled)
-        logvar = self.fc_logvar(pooled)
+        logvar = self.fc_logvar(pooled).clamp(-10.0, 10.0)
         return mu, logvar
 
     def encode(self, data: Data | Batch) -> Tensor:

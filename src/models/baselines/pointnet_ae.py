@@ -112,8 +112,12 @@ class PointNetAE(nn.Module):
         z = mu + std * torch.randn_like(std)
         recon = self.decoder(z)  # (B, G^2, 3)
 
-        # Chamfer reconstruction loss
-        target = data.pos.unsqueeze(0) if data.pos.ndim == 2 else data.pos
+        # Chamfer reconstruction loss — split batched pos into (B, N_max, 3)
+        B = mu.shape[0]
+        batch_idx = data.batch if hasattr(data, "batch") and data.batch is not None else torch.zeros(data.pos.shape[0], dtype=torch.long, device=data.pos.device)
+        per_graph = [data.pos[batch_idx == i] for i in range(B)]
+        n_max = max(p.shape[0] for p in per_graph)
+        target = torch.stack([F.pad(p, (0, 0, 0, n_max - p.shape[0])) for p in per_graph])
         chamfer = chamfer_loss(recon, target)
         kl = -0.5 * (1 + logvar - mu ** 2 - logvar.exp()).sum(dim=-1).mean()
         loss = chamfer + 0.001 * kl
@@ -123,7 +127,6 @@ class PointNetAE(nn.Module):
 
 def chamfer_loss(pred: Tensor, target: Tensor) -> Tensor:
     """pred, target: (B, N, 3). Returns mean Chamfer distance."""
-    from torch.cdist import cdist
     dist = torch.cdist(pred, target)  # (B, N, M)
     d1 = dist.min(dim=2).values.mean()
     d2 = dist.min(dim=1).values.mean()

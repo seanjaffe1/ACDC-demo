@@ -29,8 +29,15 @@ def procrustes_align(source: np.ndarray, target: np.ndarray) -> tuple[np.ndarray
     tgt_c = target - mu_t
 
     # Scale to unit size
-    scale = np.sqrt((tgt_c ** 2).sum() / (src_c ** 2).sum())
+    src_norm = (src_c ** 2).sum()
+    scale = np.sqrt((tgt_c ** 2).sum() / src_norm) if src_norm > 0 else 1.0
     src_c = src_c * scale
+
+    # If vertex counts differ, match each source point to nearest target point
+    if src_c.shape[0] != tgt_c.shape[0]:
+        tree = cKDTree(tgt_c)
+        _, idx = tree.query(src_c)
+        tgt_c = tgt_c[idx]
 
     H = src_c.T @ tgt_c
     U, _, Vt = np.linalg.svd(H)
@@ -65,6 +72,13 @@ def icp(source: np.ndarray, target: np.ndarray, max_iter: int = 50, tol: float =
 def register_mesh(source_mesh: trimesh.Trimesh, template_verts: np.ndarray) -> trimesh.Trimesh:
     """Align source_mesh vertices to template_verts, return new mesh."""
     src_verts = source_mesh.vertices.copy()
+
+    # Replace any non-finite vertices with the centroid of valid vertices
+    finite_mask = np.isfinite(src_verts).all(axis=1)
+    if not finite_mask.all():
+        fallback = src_verts[finite_mask].mean(0) if finite_mask.any() else np.zeros(3)
+        src_verts[~finite_mask] = fallback
+        print(f"    WARNING: replaced {(~finite_mask).sum()} non-finite vertices")
 
     # Coarse Procrustes
     R, t, scale = procrustes_align(src_verts, template_verts)

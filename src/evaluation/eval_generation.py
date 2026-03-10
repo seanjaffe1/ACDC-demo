@@ -53,7 +53,10 @@ def generate_shapes(encoder, flow_model, loader, device, steps: int = 50) -> tup
                 mask = batch.batch == i
                 real_shapes.append(batch.pos[mask].cpu().numpy().flatten())
                 gen_shapes.append(gen_pos[mask].cpu().numpy().flatten())
-    return np.stack(real_shapes), np.stack(gen_shapes)
+    max_len = max(s.shape[0] for s in real_shapes)
+    real_arr = np.stack([np.pad(s, (0, max_len - len(s))) for s in real_shapes])
+    gen_arr = np.stack([np.pad(s, (0, max_len - len(s))) for s in gen_shapes])
+    return real_arr, gen_arr
 
 
 def main():

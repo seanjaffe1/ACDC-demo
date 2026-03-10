@@ -23,6 +23,23 @@ from src.training.train_main import CardiacGraphDataset, make_noise_data
 from src.models.encoder import GraphEncoder
 
 
+def voxelise(batch, voxel_size: int = 32) -> "torch.Tensor":
+    """Convert a batched PyG point cloud to binary voxel volumes (B, 1, D, H, W)."""
+    import torch
+    B = batch.num_graphs
+    device = batch.pos.device
+    vols = torch.zeros(B, 1, voxel_size, voxel_size, voxel_size, device=device)
+    for b in range(B):
+        mask = batch.batch == b
+        pos = batch.pos[mask]  # (N, 3)
+        pos_min = pos.min(0).values
+        pos_max = pos.max(0).values
+        pos_norm = (pos - pos_min) / (pos_max - pos_min + 1e-6) * (voxel_size - 1)
+        idx = pos_norm.long().clamp(0, voxel_size - 1)
+        vols[b, 0, idx[:, 0], idx[:, 1], idx[:, 2]] = 1.0
+    return vols
+
+
 # Maps baseline key → human-readable tag for W&B
 BASELINE_TAGS = {
     "pca": ["baseline", "pca", "no-deep-learning"],
@@ -53,8 +70,10 @@ def train_pca(cfg: dict):
     shapes = []
     for e in entries:
         data = torch.load(graph_dir / e["file"], weights_only=False)
-        shapes.append(data.pos.numpy())
-    shapes = np.stack(shapes)
+        shapes.append(data.pos.numpy().flatten())
+    max_len = max(s.shape[0] for s in shapes)
+    shapes = np.stack([np.pad(s, (0, max_len - len(s))) for s in shapes])
+    shapes = shapes.reshape(len(shapes), -1, 3)  # (N, V_max, 3)
 
     model = PCAShapeModel(n_components=cfg.get("n_components", 50))
     model.fit(shapes)
@@ -165,10 +184,10 @@ def train_neural(cfg: dict, baseline: str):
                 loss = out["loss"]
 
             elif baseline == "voxel":
-                # voxel baseline expects volumetric tensors — skip batch for now
-                # (requires separate voxelisation step; placeholder loss)
                 model.train()
-                loss = torch.tensor(0.0, requires_grad=True, device=device)
+                real_vox = voxelise(batch, voxel_size=cfg.get("voxel_size", 32))
+                noise_vox = torch.randn_like(real_vox)
+                loss = model(noise_vox, real_vox)
 
             optimizer.zero_grad()
             loss.backward()
@@ -194,7 +213,10 @@ def train_neural(cfg: dict, baseline: str):
                     model.eval()
                     loss = model(batch)["loss"]
                 elif baseline == "voxel":
-                    loss = torch.tensor(0.0, device=device)
+                    model.eval()
+                    real_vox = voxelise(batch, voxel_size=cfg.get("voxel_size", 32))
+                    noise_vox = torch.randn_like(real_vox)
+                    loss = model(noise_vox, real_vox)
                 val_loss += loss.item()
         val_loss /= max(len(val_loader), 1)
 

@@ -60,10 +60,11 @@ class EGNNLayer(nn.Module):
             edge_input = torch.cat([edge_input, edge_attr], dim=-1)
         m_ij = self.edge_mlp(edge_input)  # (E, hidden)
 
-        # Coordinate update
-        coord_weight = self.coord_mlp(m_ij)  # (E, 1)
+        # Coordinate update (normalize diff to prevent position explosion)
+        dist = dist_sq.sqrt() + 1.0  # (E, 1), +1 avoids div-by-zero
+        coord_weight = torch.tanh(self.coord_mlp(m_ij))  # (E, 1), bounded in [-1, 1]
         coord_agg = torch.zeros_like(x).scatter_add(
-            0, col.unsqueeze(-1).expand_as(diff), coord_weight * diff
+            0, col.unsqueeze(-1).expand_as(diff), coord_weight * diff / dist
         )
         x = x + coord_agg
 
