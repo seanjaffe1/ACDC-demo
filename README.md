@@ -87,8 +87,6 @@ All metrics on LV end-diastole validation set.
 | **EGNN (ours)** | **0.995 ± 0.077** | **1.614 ± 0.100** |
 | Gauge-EGNN + KL warmup | 1.004 ± 0.074 | 1.627 ± 0.097 |
 | Gauge-EGNN + geo/attn pool | 1.028 ± 0.077 | 1.694 ± 0.099 |
-| X-EGNN | — | — |
-
 ### Generation & Clinical
 
 | Model | 1-NNA ↓ | Probe (%) ↑ | EF error (%) ↓ |
@@ -97,7 +95,6 @@ All metrics on LV end-diastole validation set.
 | EGNN (ours) | 0.605 | 32 | 230 |
 | Gauge-EGNN + KL warmup | **0.590** | 38 | **157** |
 | Gauge-EGNN + geo/attn pool | 0.600 | **41** | 281 |
-| X-EGNN | — | — | — |
 
 ## Training
 
