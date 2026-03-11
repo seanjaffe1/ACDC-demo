@@ -15,10 +15,10 @@
 \usepackage{nicefrac}
 \usepackage{microtype}
 \usepackage{xcolor}
-\usepackage[draft]{graphicx}  % remove [draft] once figure files exist
+\usepackage{graphicx}
 \usepackage{subcaption}
 \usepackage{algorithm}
-\usepackage{algpseudocode}
+\usepackage{algpseudocode}ß
 \usepackage{multirow}
 % Convenience macros
 \newcommand{\R}{\mathbb{R}}
@@ -33,7 +33,6 @@
 
 \author{%
   Sean Jaffe \\
-  \texttt{TODO: affiliation}
 }
 
 \begin{document}
@@ -288,19 +287,6 @@ pathology label $y \in \{0, \ldots, 4\}$.
 Our model consists of two learned components: a graph encoder that maps
 a cardiac mesh to a latent code, and a flow-matching velocity field
 conditioned on that code.
-Figure~\ref{fig:architecture} provides an overview.
-
-\begin{figure}[h]
-    \centering
-    \todo{Insert architecture diagram: mesh $\to$ encoder $\to$ $\mathbf{z}$
-          $\to$ velocity field $\to$ generated mesh}
-    \caption{Model architecture. The EGNN encoder compresses a cardiac
-             mesh graph into a latent code $\mathbf{z}$. The EGNN
-             velocity field, conditioned on $\mathbf{z}$ and time $t$,
-             transports a noise cloud to a realistic cardiac mesh via
-             OT flow matching.}
-    \label{fig:architecture}
-\end{figure}
 
 \paragraph{EGNN Encoder.}
 The encoder is a four-layer EGNN followed by mean-and-max global
@@ -530,7 +516,6 @@ warmup reduces this to $157\%$ without additional epochs.
 \toprule
 Model & EF error (\%) $\downarrow$ & EF $\leq 5\%$ (\%) $\uparrow$ & Myo vol change (\%) $\downarrow$ \\
 \midrule
-PCA (B1)               & \todo{}\textdagger & \todo{}\textdagger & \todo{}\textdagger \\
 MLP flow (B4)          & $543.5 \pm 2355.1$ & $3.0$              & $365.1 \pm 979.7$  \\
 \textbf{Ours}          & $229.8 \pm 570.8$  & $3.0$              & $881.0 \pm 4612.7$ \\
 Gauge-EGNN + warmup    & $\mathbf{157.0}$   & $3.0$              & ---                \\

@@ -5,6 +5,14 @@ trained on the [ACDC dataset](https://www.creatis.insa-lyon.fr/Challenge/acdc/).
 The model combines a VAE encoder (EGNN backbone) with conditional optimal-transport
 flow matching to generate realistic, anatomically plausible cardiac shapes.
 
+## Figures
+
+### LV Mesh Vertex Count Distribution
+![Vertex count distribution](report/figures/vertex_count_dist.png)
+
+### ED vs ES Comparison
+![ED vs ES mesh comparison](report/figures/ed_es_comparison.png)
+
 ## Data
 
 **Source:** ACDC (Automated Cardiac Diagnosis Challenge) — 100 subjects, 5
