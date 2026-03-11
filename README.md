@@ -96,6 +96,12 @@ All metrics on LV end-diastole validation set.
 | Gauge-EGNN + KL warmup | **0.590** | 38 | **157** |
 | Gauge-EGNN + geo/attn pool | 0.600 | **41** | 281 |
 
+- **1-NNA**: how realistic generated shapes look — 0.5 is perfect, 1.0 is bad. All models are around 0.59–0.61, so generation quality is similar across the board.
+- **Probe**: how well the latent space separates the 5 cardiac pathologies (random chance = 20%). Higher is better. The Gauge-EGNN variants improve this significantly, with geo/attn pool reaching 41%.
+- **EF error**: how accurate the generated heart volumes are clinically. All models are poor, but Gauge-EGNN + KL warmup (157%) is notably better than the 230% EGNN baseline.
+
+Gauge-EGNN + KL warmup is the best overall — best generation realism and best clinical accuracy. The geo/attn pool variant has the most structured latent space (probe=41%) but sacrifices EF accuracy.
+
 ## Training
 
 ```bash
