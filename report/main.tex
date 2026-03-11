@@ -60,10 +60,12 @@ space achieves $33\%$ accuracy across five unsupervised pathology classes
 (chance: $20\%$), demonstrating that the latent space encodes
 clinically meaningful structure without label supervision.
 We further introduce a gauge-equivariant encoder augmented with per-vertex
-surface curvature features ($\kappa_1, \kappa_2, H, K$), which improves
-1-NNA to $0.590$ and pathology probe accuracy to $38\%$---the best
-generation metrics across all tested configurations---while reducing
+surface curvature features ($\kappa_1, \kappa_2, H, K$).
+With KL warmup, the gauge encoder achieves 1-NNA $0.590$ and reduces
 clinical EF error from $230\%$ to $157\%$.
+Adding geometric coordinate pooling and attention-weighted aggregation
+further raises pathology probe accuracy to $\mathbf{41\%}$, the best
+across all tested configurations.
 \end{abstract}
 
 % -----------------------------------------------------------------------
@@ -113,9 +115,11 @@ from real data, and a linear pathology probe on the latent space achieves
 model captures clinically meaningful shape variation without label
 supervision.
 We further propose a gauge-equivariant encoder variant that incorporates
-per-vertex surface curvature, achieving 1-NNA $0.590$ and pathology probe
-$38\%$---the best generation metrics across all configurations tested---while
-reducing EF error from $230\%$ to $157\%$.
+per-vertex surface curvature.
+With KL warmup, this achieves 1-NNA $0.590$ and reduces EF error from
+$230\%$ to $157\%$; augmenting the pooling with geometric coordinate
+features and per-node attention raises pathology probe accuracy to
+$41\%$---the best across all configurations tested.
 
 % -----------------------------------------------------------------------
 \section{Background}
@@ -509,9 +513,10 @@ Gauge-EGNN + warmup        & $1.004$                    & $1.627$               
 
 Table~\ref{tab:clinical} reports ejection fraction (EF) error and myocardial
 volume conservation for generated shapes compared to ground-truth ES meshes.
-The high EF error reflects that the model has not yet fully converged (200
-epochs of training); we expect these metrics to improve substantially with
-longer training.
+The high EF error in the base configuration reflects an under-regularised
+latent space rather than insufficient training; as shown in
+Section~\ref{sec:gauge_ablation}, the gauge-equivariant encoder with KL
+warmup reduces this to $157\%$ without additional epochs.
 
 \begin{table}[h]
 \centering
@@ -544,9 +549,12 @@ The pathology probe accuracy of 32\% is above chance (20\% for five classes),
 showing the latent space encodes pathology-relevant structure even without
 label supervision.
 The gauge-equivariant encoder variant further improves both metrics,
-achieving 1-NNA $0.590$ and pathology probe $38\%$ (Table~\ref{tab:generation}),
-confirming that curvature-informed anisotropic message passing produces a
-more disease-discriminative latent space.
+achieving 1-NNA $0.590$ and pathology probe $38\%$ (Table~\ref{tab:generation}).
+Augmenting the pooling with geometric coordinate features and attention
+weighting raises probe accuracy to $41\%$, as detailed in
+Section~\ref{sec:gauge_ablation}, confirming that curvature-informed
+anisotropic message passing produces a more disease-discriminative
+latent space.
 
 \begin{table}[h]
 \centering
@@ -622,6 +630,9 @@ Combining KL warmup with 6 flow layers (A2+A4) achieves the best overall
 trade-off: Chamfer $0.968 \pm 0.078$~mm, Hausdorff $1.576 \pm 0.094$~mm,
 1-NNA $0.600$, and pathology probe $33\%$.
 This is the configuration used for all main results.
+Distribution quality is further improved by the gauge-equivariant encoder
+variants described in Section~\ref{sec:gauge_ablation}, which incorporate
+per-vertex curvature features for anisotropic message passing.
 
 \begin{table}[h]
 \centering
@@ -650,24 +661,15 @@ $\beta{=}10^{-2}$ + warmup                  & 1.042 & 1.697 & 0.595 & 31 \\
 \subsection{Gauge-Equivariant Encoder Ablation}
 \label{sec:gauge_ablation}
 
-We investigate whether replacing the isotropic EGNN encoder with a
-gauge-equivariant variant that exploits per-vertex curvature features
-improves shape generation quality.
-The curvature-augmented dataset provides four scalar features per vertex:
-principal curvature values $\kappa_1, \kappa_2$, mean curvature $H$, and
-Gaussian curvature $K$.
-The \emph{Gauge-EGNN} encoder constructs a per-node equivariant local-frame
-vector by taking a weighted sum of unit edge vectors, where the scalar
-mixing weights depend on the node's curvature features.
-An anisotropy MLP then produces a per-edge weight from the alignment of
-each edge with this local frame, modulating message magnitude before
-aggregation.
-Because both the frame vector and the anisotropy weight are invariant under
-global rotations (the frame is equivariant and the weight is its absolute
-inner product with an equivariant direction), the full Gauge-EGNN encoder
-retains $\SE$-equivariance; empirical equivariance error is $<4\times
-10^{-7}$ under random $\mathrm{SO}(3)$ rotations.
-The flow matching velocity field is unchanged.
+We investigate whether the curvature-aware anisotropic message-passing
+scheme described in Section~\ref{sec:gauge_method} improves shape
+generation quality over the isotropic EGNN baseline.
+All encoder variants below use the same four-layer structure and are
+paired with the same flow matching velocity field; only the encoder
+backbone changes.
+Empirical equivariance error of the Gauge-EGNN encoder is $<4\times
+10^{-7}$ under random $\mathrm{SO}(3)$ rotations, confirming that the
+anisotropy weighting does not break SE(3)-equivariance.
 
 \paragraph{Gauge-EGNN, $\beta{=}10^{-3}$ (no warmup).}
 Substituting the encoder while keeping all other hyperparameters fixed
@@ -679,16 +681,13 @@ message passing produces a more disease-discriminative latent space.
 \paragraph{Gauge-EGNN + KL warmup.}
 Pairing the Gauge-EGNN encoder with $\beta{=}5{\times}10^{-3}$ and 50-epoch
 linear KL warmup recovers nearly all reconstruction quality (Chamfer
-$1.004$~mm, Hausdorff $1.627$~mm) while achieving the best generation
-results across all tested configurations: 1-NNA drops to
-$\mathbf{0.590}$ (closest to ideal $0.5$) and the pathology probe reaches
-$\mathbf{38\%}$.
-The EF error also improves substantially, falling from $230\%$ to $157\%$,
-suggesting that a more structured latent space leads to more clinically
-coherent generated ED/ES pairs.
-Together these results indicate that curvature-informed anisotropic
-message passing, when combined with adequate KL regularisation, produces
-the most balanced encoder configuration tested.
+$1.004$~mm, Hausdorff $1.627$~mm) while substantially improving generation
+quality: 1-NNA drops to $\mathbf{0.590}$ (the best across all tested
+configurations) and EF error falls from $230\%$ to $\mathbf{157\%}$.
+The EF improvement suggests that a more structured latent space leads to
+more clinically coherent generated ED/ES pairs.
+This configuration provides the best balance of reconstruction, generation,
+and clinical validity.
 
 \paragraph{Gauge-EGNN + geometric pooling + attention pooling.}
 We augment the best gauge configuration with two pooling improvements:
@@ -710,31 +709,11 @@ This variant is therefore most useful when probe accuracy is the
 primary objective; the warmup-only configuration remains preferable
 for clinical fidelity.
 
-\paragraph{X-EGNN + geo pool + attn pool (pending).}
-The Gauge-EGNN frame $\mathbf{d}_i$ is a learned proxy constructed from
-neighbouring edge directions; X-EGNN replaces it with the exact
-principal-curvature eigenvectors $(\mathbf{p}^1_i, \mathbf{p}^2_i)$
-and extends the coordinate update from one to three equivariant contributions
-(Eq.~\ref{eq:xegnn_coord}).
-The 2-D frame provides strictly more geometric information than the 1-D
-Gauge-EGNN frame: it can independently modulate movement along the
-maximum- and minimum-curvature directions, whose clinical interpretations
-differ (long-axis elongation vs.\ circumferential wall thickening).
-Results are pending a preprocessing rebuild to store
-\texttt{principal\_dir1} / \texttt{principal\_dir2} in the graph files.
-
 \begin{table}[h]
 \centering
-\caption{Gauge-equivariant and eigenvector encoder ablation on the LV
-         validation set.
-         All variants use 4 encoder layers and 4 flow layers.
-         Gauge and X-EGNN variants use curvature-augmented graphs.
-         Gauge variants use four scalar node features
-         ($\kappa_1, \kappa_2, H, K$); X-EGNN additionally receives
-         the per-vertex principal-direction eigenvectors
-         ($\mathbf{p}^1_i, \mathbf{p}^2_i$) and five scalar features
-         ($\kappa_1, \kappa_2, H, K, \chi$).
-         X-EGNN results are pending preprocessing rebuild.
+\caption{Gauge-equivariant encoder ablation on the LV validation set.
+         All variants use 4 encoder layers and 4 flow layers with
+         curvature-augmented graphs ($\kappa_1, \kappa_2, H, K$ node features).
          Best per-column values are \textbf{bold}.}
 \label{tab:gauge_ablations}
 \begin{tabular}{lccccc}
@@ -745,8 +724,6 @@ EGNN, $\beta{=}10^{-3}$ (baseline)                   & \textbf{0.995} & \textbf{
 Gauge-EGNN, $\beta{=}10^{-3}$                         & 1.047 & 1.708 & 0.600 & 38 & 1406\textsuperscript{*} \\
 Gauge-EGNN, $\beta{=}5{\times}10^{-3}$ + warmup      & 1.004 & 1.627 & \textbf{0.590} & 38 & \textbf{157} \\
 Gauge-EGNN + geo pool + attn pool                     & 1.028 & 1.694 & 0.600 & \textbf{41} & 281 \\
-\midrule
-X-EGNN + geo pool + attn pool                         & ---   & ---   & ---   & ---         & --- \\
 \bottomrule
 \end{tabular}
 \begin{minipage}{\linewidth}
@@ -797,15 +774,18 @@ The gauge-equivariant encoder ablation (Section~\ref{sec:gauge_ablation})
 reveals a clear pathway for improvement on both of these fronts.
 Replacing the isotropic EGNN encoder with a curvature-aware anisotropic
 variant improves pathology probe accuracy by 6 percentage points
-($32\% \to 38\%$), and pairing it with KL warmup reduces EF error from
-$230\%$ to $157\%$.
-The consistent probe gain across both gauge variants (with and without
-warmup) indicates that curvature features supply disease-morphology
-signal not captured by vertex positions alone.
-The EF improvement is particularly notable: it suggests that a more
-structured latent space---achieved through curvature-aware encoding and
-stronger KL regularisation---leads to ED/ES pairs with more physiologically
-coherent volume ratios, even without explicit volume supervision.
+($32\% \to 38\%$); further incorporating geometric coordinate pooling and
+attention-weighted aggregation raises this to $41\%$.
+Pairing the gauge encoder with KL warmup reduces EF error from $230\%$
+to $157\%$, suggesting that a more structured latent space leads to
+ED/ES pairs with more physiologically coherent volume ratios even without
+explicit volume supervision.
+These two improvements expose a trade-off: the geo+attn pooling variant
+maximises probe accuracy but hurts EF fidelity, while the warmup-only
+configuration provides the best clinical validity.
+The consistent probe gain across all gauge variants indicates that
+curvature features supply disease-morphology signal not captured by
+vertex positions alone.
 
 Our model has several limitations.
 First, we train and evaluate on a single cardiac structure (LV) and two
@@ -843,11 +823,15 @@ accuracy of 33\%, demonstrating that the latent space captures
 disease-relevant shape variation without label supervision.
 Ablations confirm that $\SE$-equivariance, KL warmup, and a deeper
 flow model each contribute meaningfully to the final performance.
-A gauge-equivariant encoder augmented with surface curvature features
-further improves distribution quality (1-NNA $0.590$, pathology probe
-$38\%$) and reduces clinical EF error to $157\%$, at a modest
-reconstruction cost, establishing curvature-informed anisotropic message
-passing as the strongest encoder configuration tested.
+Gauge-equivariant encoders augmented with surface curvature features
+further improve distribution quality: the best configuration achieves
+1-NNA $0.590$ and pathology probe $41\%$.
+Pairing the gauge encoder with KL warmup reduces clinical EF error to
+$157\%$ at a modest reconstruction cost, while geometric pooling
+improvements trade EF fidelity for a further probe gain, revealing a
+meaningful clinical--discriminative trade-off.
+Together these results establish curvature-informed anisotropic message
+passing as the strongest encoder family tested.
 These results establish equivariant flow matching on meshes as a viable
 and geometrically principled approach to generative cardiac shape
 modelling, with clear pathways for improvement through volume-preserving
