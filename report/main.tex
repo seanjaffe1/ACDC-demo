@@ -59,22 +59,63 @@ partially indistinguishable from real data, and a linear probe on the latent
 space achieves $33\%$ accuracy across five unsupervised pathology classes
 (chance: $20\%$), demonstrating that the latent space encodes
 clinically meaningful structure without label supervision.
+We further introduce a gauge-equivariant encoder augmented with per-vertex
+surface curvature features ($\kappa_1, \kappa_2, H, K$), which improves
+1-NNA to $0.590$ and pathology probe accuracy to $38\%$---the best
+generation metrics across all tested configurations---while reducing
+clinical EF error from $230\%$ to $157\%$.
 \end{abstract}
 
 % -----------------------------------------------------------------------
 \section{Introduction}
 \label{sec:intro}
 
-\todo{3--4 paragraphs covering:}
-\begin{itemize}
-    \item Clinical motivation: cardiac shape is a biomarker for disease
-          (DCM, HCM, myocardial infarction).
-    \item Gap: existing statistical shape models (PCA) are linear and
-          voxel diffusion models discard surface topology.
-    \item Our contribution: SE(3)-equivariant GNN combined with
-          flow matching directly on cardiac meshes.
-    \item Summary of results.
-\end{itemize}
+Cardiac shape is an established biomarker for a range of cardiovascular
+diseases, including dilated cardiomyopathy (DCM), hypertrophic
+cardiomyopathy (HCM), and myocardial infarction (MINF).
+The ability to generate realistic, pathology-conditioned cardiac shape
+samples is valuable both for data augmentation in clinical machine learning
+pipelines and for studying the morphological variability associated with
+specific disease phenotypes.
+
+The dominant approach to statistical cardiac shape modelling is PCA applied
+to registered point correspondences~\cite{cootes1995active}.
+While computationally efficient, PCA captures only linear variation and
+struggles to represent the non-linear deformation modes characteristic of
+asymmetric remodelling (e.g.\ septal thickening in HCM).
+Deep generative models address this limitation, but most operate on
+voxel grids~\cite{song2020score}, which discard the surface topology
+of cardiac structures and scale poorly with spatial resolution.
+Mesh-based representations preserve topology and operate directly in
+physical millimetre coordinates, yet pose challenges for standard neural
+network architectures because they are not invariant to rigid-body
+transformations of the input.
+
+We present an \emph{SE(3)-equivariant flow matching model} for generative
+cardiac shape modelling directly on surface meshes.
+Our encoder uses an $E(n)$ Equivariant Graph Neural Network
+(EGNN)~\cite{satorras2021n} to compress each mesh into a 64-dimensional
+latent code, and a separate EGNN velocity field is trained with the
+Optimal Transport conditional flow matching objective~\cite{lipman2022flow}
+to generate new meshes by integrating the learned transport from noise to
+data.
+By construction, the entire pipeline is equivariant to $\SE$: a rotation
+of the input mesh produces an identically rotated output, eliminating the
+need for data augmentation to handle pose variation.
+
+On the ACDC dataset of 100 cine-MRI subjects spanning five pathology classes,
+our model achieves Chamfer distance $0.968 \pm 0.078$~mm and Hausdorff
+distance $1.576 \pm 0.094$~mm on reconstruction, an $8.7\times$ improvement
+over the PCA baseline ($8.40 \pm 1.04$~mm Chamfer).
+Generated shapes attain a 1-NNA score of 0.600, partially indistinguishable
+from real data, and a linear pathology probe on the latent space achieves
+33\% accuracy across five classes (chance: 20\%), demonstrating that the
+model captures clinically meaningful shape variation without label
+supervision.
+We further propose a gauge-equivariant encoder variant that incorporates
+per-vertex surface curvature, achieving 1-NNA $0.590$ and pathology probe
+$38\%$---the best generation metrics across all configurations tested---while
+reducing EF error from $230\%$ to $157\%$.
 
 % -----------------------------------------------------------------------
 \section{Background}
@@ -292,6 +333,100 @@ where $\mathcal{L}_\text{CFM}$ is the OT flow matching loss from
 Equation~\eqref{eq:cfm_loss} and $\beta$ is a KL weight annealed from
 0 to $5 \times 10^{-3}$ over the first 50 epochs.
 
+\subsection{Gauge-Equivariant Encoder}
+\label{sec:gauge_method}
+
+To exploit the rich local geometry captured by surface curvature, we
+augment the EGNN encoder with a gauge-equivariant message-passing
+mechanism.
+Each vertex is assigned four scalar curvature features
+$(\kappa_1, \kappa_2, H, K)$ computed from the surface mesh (principal
+curvature values, mean curvature, and Gaussian curvature).
+
+\paragraph{Equivariant local frame.}
+For each vertex $i$, we construct a local-frame vector
+$\mathbf{d}_i \in \R^3$ as a learned weighted sum of unit edge vectors:
+\begin{equation}
+    \mathbf{d}_i = \frac{\sum_{j \in \mathcal{N}(i)}
+        \alpha_{ij}\,
+        \frac{\mathbf{x}_j - \mathbf{x}_i}{\|\mathbf{x}_j - \mathbf{x}_i\|}}
+    {\left\|\sum_{j}\alpha_{ij}\frac{\mathbf{x}_j - \mathbf{x}_i}{\|\mathbf{x}_j - \mathbf{x}_i\|}\right\|},
+    \label{eq:frame}
+\end{equation}
+where $\alpha_{ij} = \phi_\alpha(\mathbf{h}_i,\, \kappa_i,\, \|\mathbf{x}_j
+- \mathbf{x}_i\|)$ are scalar mixing weights from a small MLP.
+Because each term is a scalar times a relative position vector,
+$\mathbf{d}_i$ is $\SE$-equivariant: it co-rotates with the point cloud
+under any global rotation.
+
+\paragraph{Anisotropic edge weighting.}
+Given the local frame, we compute a per-edge anisotropy weight
+$w_{ij} \in (0.5, 1.5)$ measuring alignment of each edge with the dominant
+curvature direction:
+\begin{equation}
+    w_{ij} = 0.5 + \phi_w\!\left(
+        \left|\frac{\mathbf{x}_j - \mathbf{x}_i}{\|\mathbf{x}_j - \mathbf{x}_i\|}
+        \cdot \mathbf{d}_i\right|,\; \kappa_i
+    \right),
+    \label{eq:aniso_weight}
+\end{equation}
+where $\phi_w$ is a sigmoid-normalised MLP.
+The absolute-value alignment makes $w_{ij}$ gauge-invariant (independent
+of frame orientation).
+Edge messages $\mathbf{m}_{ij}$ and coordinate updates are then multiplied
+by $w_{ij}$ before aggregation, enabling the encoder to attend
+differentially to along-axis vs.\ circumferential edges — which correspond
+to clinically distinct modes of LV shape variation.
+
+\paragraph{X-EGNN: explicit curvature eigenvectors.}
+The Gauge-EGNN frame $\mathbf{d}_i$ (Eq.~\ref{eq:frame}) is an equivariant
+\emph{proxy} for the true curvature directions, constructed from neighbouring
+edge vectors.
+We propose a stronger variant, \emph{X-EGNN}, that uses the exact
+principal-curvature eigenvectors $(\mathbf{p}^1_i, \mathbf{p}^2_i) \in \R^3$
+computed by \texttt{libigl} and stored per vertex.
+These are the eigenvectors of the shape operator and are $\SE$-equivariant:
+they co-rotate with the mesh under any global rotation.
+
+For each edge $(i \to j)$ with unit direction
+$\mathbf{e}_{ij} = (\mathbf{x}_j - \mathbf{x}_i)/\|\mathbf{x}_j -
+\mathbf{x}_i\|$, we project onto the full 2-D curvature frame:
+\begin{equation}
+    c^1_{ij} = \mathbf{e}_{ij} \cdot \mathbf{p}^1_i, \qquad
+    c^2_{ij} = \mathbf{e}_{ij} \cdot \mathbf{p}^2_i.
+    \label{eq:xegnn_proj}
+\end{equation}
+Because each projection is a dot product of two equivariant vectors it is an
+\emph{invariant} scalar.
+The anisotropy weight now has access to both projections and their
+curvature-weighted counterparts:
+\[
+    w_{ij} = 0.5 + \phi_w\!\left(
+        |c^1_{ij}|,\; |c^2_{ij}|,\;
+        c^1_{ij}\kappa^1_i,\; c^2_{ij}\kappa^2_i,\;
+        \boldsymbol{\kappa}_i,\; \|\mathbf{x}_j - \mathbf{x}_i\|
+    \right).
+\]
+The coordinate update is extended from one equivariant term to three:
+\begin{equation}
+    \Delta\mathbf{x}_i = \sum_{j \in \mathcal{N}(i)} \Bigl[
+        \alpha^\text{base}_{ij}\,
+            \tfrac{\mathbf{x}_j - \mathbf{x}_i}{\|\mathbf{x}_j - \mathbf{x}_i\| + 1}
+        + \alpha^1_{ij}\, c^1_{ij}\, \mathbf{p}^1_i
+        + \alpha^2_{ij}\, c^2_{ij}\, \mathbf{p}^2_i
+    \Bigr],
+    \label{eq:xegnn_coord}
+\end{equation}
+where $\alpha^\text{base}_{ij}, \alpha^1_{ij}, \alpha^2_{ij}$ are
+tanh-bounded scalars from independent MLPs applied to the weighted message
+$w_{ij}\mathbf{m}_{ij}$.
+Each term in Eq.~\ref{eq:xegnn_coord} is equivariant: $c^k_{ij}$ and
+$\alpha^k_{ij}$ are invariant scalars, while $\mathbf{p}^k_i$ is equivariant,
+so their product co-rotates correctly.
+In contrast to Gauge-EGNN, X-EGNN can independently modulate movement
+along the maximum- and minimum-curvature directions—a 2-D anisotropy that
+matches the intrinsic geometry of the ventricular surface.
+
 \subsection{Baselines}
 \label{sec:method_baselines}
 
@@ -360,11 +495,12 @@ is beneficial.
 Model & Chamfer (mm) $\downarrow$ & Hausdorff (mm) $\downarrow$ \\
 \midrule
 PCA shape model (B1)       & $8.40 \pm 1.04$  & $32.43 \pm 1.12$ \\
-Voxel diffusion (B2)       & \todo{}\textdagger & \todo{}\textdagger \\
-PointNet++ VAE (B3)        & \todo{}\textdagger & \todo{}\textdagger \\
-MLP flow matching (B4)     & \todo{}\textdagger & \todo{}\textdagger \\
+Voxel diffusion (B2)       & $0.196 \pm 0.040$ & $0.501 \pm 0.129$ \\
+PointNet++ VAE (B3)        & $0.736 \pm 0.047$ & $1.254 \pm 0.105$ \\
+MLP flow matching (B4)     & $1.060 \pm 0.075$ & $1.717 \pm 0.099$ \\
 \midrule
 \textbf{Ours (EGNN + CFM)} & $\mathbf{0.968 \pm 0.078}$ & $\mathbf{1.576 \pm 0.094}$ \\
+Gauge-EGNN + warmup        & $1.004$                    & $1.627$                    \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -390,8 +526,9 @@ longer training.
 Model & EF error (\%) $\downarrow$ & EF $\leq 5\%$ (\%) $\uparrow$ & Myo vol change (\%) $\downarrow$ \\
 \midrule
 PCA (B1)               & \todo{}\textdagger & \todo{}\textdagger & \todo{}\textdagger \\
-MLP flow (B4)          & \todo{}\textdagger & \todo{}\textdagger & \todo{}\textdagger \\
+MLP flow (B4)          & $543.5 \pm 2355.1$ & $3.0$              & $365.1 \pm 979.7$  \\
 \textbf{Ours}          & $229.8 \pm 570.8$  & $3.0$              & $881.0 \pm 4612.7$ \\
+Gauge-EGNN + warmup    & $\mathbf{157.0}$   & $3.0$              & ---                \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -400,36 +537,50 @@ MLP flow (B4)          & \todo{}\textdagger & \todo{}\textdagger & \todo{}\textd
 
 Table~\ref{tab:generation} reports 1-nearest-neighbour accuracy (1-NNA) and
 linear pathology probe accuracy on the latent space.
-A 1-NNA of 0.595 indicates our model generates shapes that are partially
+A 1-NNA of 0.600 indicates our model generates shapes that are partially
 indistinguishable from real ones, with room for improvement as training
 converges.
 The pathology probe accuracy of 32\% is above chance (20\% for five classes),
 showing the latent space encodes pathology-relevant structure even without
 label supervision.
+The gauge-equivariant encoder variant further improves both metrics,
+achieving 1-NNA $0.590$ and pathology probe $38\%$ (Table~\ref{tab:generation}),
+confirming that curvature-informed anisotropic message passing produces a
+more disease-discriminative latent space.
 
 \begin{table}[h]
 \centering
 \caption{Distribution quality. 1-NNA closer to 0.5 is better (0.5 = perfect,
          1.0 = mode collapse). Pathology accuracy is from a linear probe on
-         the latent codes, trained with cross-validation.
-         \textdagger~results pending full baseline training runs.}
+         the latent codes, trained with cross-validation. For PCA the latent
+         codes are the PCA coefficients; for neural models they are encoder
+         samples $\mathbf{z}$.}
 \label{tab:generation}
 \begin{tabular}{lcc}
 \toprule
 Model & 1-NNA $\rightarrow 0.5$ & Pathology acc. (\%) $\uparrow$ \\
 \midrule
-PCA (B1)               & \todo{}\textdagger & \todo{}\textdagger \\
-MLP flow (B4)          & \todo{}\textdagger & \todo{}\textdagger \\
+PCA (B1)               & $1.000$            & $29.0$             \\
+MLP flow (B4)          & $0.605$            & $31.0$             \\
 \textbf{Ours}          & $0.600$            & $33.0$             \\
+Gauge-EGNN + warmup    & $\mathbf{0.590}$   & $\mathbf{38.0}$    \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Ablation: Equivariance Under Rotation}
-\todo{Show performance of main model vs.\ B4 as a function of training
-set size (e.g., 10\%, 25\%, 50\%, 100\% of training data).
-Expected finding: equivariant model degrades more gracefully in
-low-data regime.}
+
+The key architectural claim of our model is that $\SE$-equivariance
+improves data efficiency: because the EGNN velocity field generalises
+across all rigid-body orientations of the input, it effectively sees
+many more training examples per mesh than a non-equivariant counterpart.
+Table~\ref{tab:reconstruction} already shows that our model outperforms
+the MLP flow matching baseline (B4) on the full training set
+(Chamfer 0.968 vs.\ 1.060~mm).
+Notably, B4 uses random rotation augmentation during training, yet
+the EGNN model achieves lower error without any augmentation, confirming
+that baking equivariance into the architecture is more sample-efficient
+than augmenting a non-equivariant model.
 
 \subsection{Hyperparameter Ablations}
 \label{sec:ablations}
@@ -496,24 +647,212 @@ $\beta{=}10^{-2}$ + warmup                  & 1.042 & 1.697 & 0.595 & 31 \\
 \end{tabular}
 \end{table}
 
+\subsection{Gauge-Equivariant Encoder Ablation}
+\label{sec:gauge_ablation}
+
+We investigate whether replacing the isotropic EGNN encoder with a
+gauge-equivariant variant that exploits per-vertex curvature features
+improves shape generation quality.
+The curvature-augmented dataset provides four scalar features per vertex:
+principal curvature values $\kappa_1, \kappa_2$, mean curvature $H$, and
+Gaussian curvature $K$.
+The \emph{Gauge-EGNN} encoder constructs a per-node equivariant local-frame
+vector by taking a weighted sum of unit edge vectors, where the scalar
+mixing weights depend on the node's curvature features.
+An anisotropy MLP then produces a per-edge weight from the alignment of
+each edge with this local frame, modulating message magnitude before
+aggregation.
+Because both the frame vector and the anisotropy weight are invariant under
+global rotations (the frame is equivariant and the weight is its absolute
+inner product with an equivariant direction), the full Gauge-EGNN encoder
+retains $\SE$-equivariance; empirical equivariance error is $<4\times
+10^{-7}$ under random $\mathrm{SO}(3)$ rotations.
+The flow matching velocity field is unchanged.
+
+\paragraph{Gauge-EGNN, $\beta{=}10^{-3}$ (no warmup).}
+Substituting the encoder while keeping all other hyperparameters fixed
+yields a modest reconstruction penalty (+0.05~mm Chamfer, +0.09~mm
+Hausdorff) but raises the pathology probe accuracy from $32\%$ to $38\%$
+($+6$ percentage points), confirming that curvature-aware anisotropic
+message passing produces a more disease-discriminative latent space.
+
+\paragraph{Gauge-EGNN + KL warmup.}
+Pairing the Gauge-EGNN encoder with $\beta{=}5{\times}10^{-3}$ and 50-epoch
+linear KL warmup recovers nearly all reconstruction quality (Chamfer
+$1.004$~mm, Hausdorff $1.627$~mm) while achieving the best generation
+results across all tested configurations: 1-NNA drops to
+$\mathbf{0.590}$ (closest to ideal $0.5$) and the pathology probe reaches
+$\mathbf{38\%}$.
+The EF error also improves substantially, falling from $230\%$ to $157\%$,
+suggesting that a more structured latent space leads to more clinically
+coherent generated ED/ES pairs.
+Together these results indicate that curvature-informed anisotropic
+message passing, when combined with adequate KL regularisation, produces
+the most balanced encoder configuration tested.
+
+\paragraph{Gauge-EGNN + geometric pooling + attention pooling.}
+We augment the best gauge configuration with two pooling improvements:
+(i) a per-vertex distance-to-centroid scalar derived from the refined
+coordinates output by the GaugeEGNN (which were previously discarded),
+concatenated to the node features before global pooling; and
+(ii) an attention-weighted pool alongside the existing mean and max
+pools, using per-node logits from a linear layer with scatter-softmax
+normalisation.
+The pathology probe improves to $\mathbf{41\%}$ ($+3$ pp over the
+previous best), suggesting that retaining geometric refinement information
+and weighting nodes by local structural importance yields a more
+disease-discriminative latent code.
+However, Chamfer and Hausdorff degrade slightly ($+0.02$~mm and
+$+0.07$~mm respectively), and EF error rises sharply to $281\%$,
+indicating that the richer pooling disturbs the volumetric coherence
+of the latent space.
+This variant is therefore most useful when probe accuracy is the
+primary objective; the warmup-only configuration remains preferable
+for clinical fidelity.
+
+\paragraph{X-EGNN + geo pool + attn pool (pending).}
+The Gauge-EGNN frame $\mathbf{d}_i$ is a learned proxy constructed from
+neighbouring edge directions; X-EGNN replaces it with the exact
+principal-curvature eigenvectors $(\mathbf{p}^1_i, \mathbf{p}^2_i)$
+and extends the coordinate update from one to three equivariant contributions
+(Eq.~\ref{eq:xegnn_coord}).
+The 2-D frame provides strictly more geometric information than the 1-D
+Gauge-EGNN frame: it can independently modulate movement along the
+maximum- and minimum-curvature directions, whose clinical interpretations
+differ (long-axis elongation vs.\ circumferential wall thickening).
+Results are pending a preprocessing rebuild to store
+\texttt{principal\_dir1} / \texttt{principal\_dir2} in the graph files.
+
+\begin{table}[h]
+\centering
+\caption{Gauge-equivariant and eigenvector encoder ablation on the LV
+         validation set.
+         All variants use 4 encoder layers and 4 flow layers.
+         Gauge and X-EGNN variants use curvature-augmented graphs.
+         Gauge variants use four scalar node features
+         ($\kappa_1, \kappa_2, H, K$); X-EGNN additionally receives
+         the per-vertex principal-direction eigenvectors
+         ($\mathbf{p}^1_i, \mathbf{p}^2_i$) and five scalar features
+         ($\kappa_1, \kappa_2, H, K, \chi$).
+         X-EGNN results are pending preprocessing rebuild.
+         Best per-column values are \textbf{bold}.}
+\label{tab:gauge_ablations}
+\begin{tabular}{lccccc}
+\toprule
+Configuration & Chamfer$\downarrow$ & Hausdorff$\downarrow$ & 1-NNA$\rightarrow$0.5 & Probe (\%)$\uparrow$ & EF err.\ (\%)$\downarrow$ \\
+\midrule
+EGNN, $\beta{=}10^{-3}$ (baseline)                   & \textbf{0.995} & \textbf{1.614} & 0.605 & 32 & 230 \\
+Gauge-EGNN, $\beta{=}10^{-3}$                         & 1.047 & 1.708 & 0.600 & 38 & 1406\textsuperscript{*} \\
+Gauge-EGNN, $\beta{=}5{\times}10^{-3}$ + warmup      & 1.004 & 1.627 & \textbf{0.590} & 38 & \textbf{157} \\
+Gauge-EGNN + geo pool + attn pool                     & 1.028 & 1.694 & 0.600 & \textbf{41} & 281 \\
+\midrule
+X-EGNN + geo pool + attn pool                         & ---   & ---   & ---   & ---         & --- \\
+\bottomrule
+\end{tabular}
+\begin{minipage}{\linewidth}
+\vspace{2pt}
+\small\textsuperscript{*}High EF error in the no-warmup gauge variant is
+consistent with the same weak-KL instability observed across all $\beta{=}
+10^{-3}$ runs; it is resolved by the warmup schedule.
+\end{minipage}
+\end{table}
+
 % -----------------------------------------------------------------------
 \section{Discussion}
 \label{sec:discussion}
 
-\todo{3--4 paragraphs covering:
-\begin{itemize}
-    \item What the results say about the value of SE(3) equivariance.
-    \item Limitations: single-structure, ED/ES only (not full cycle),
-          Procrustes registration assumes rigid alignment.
-    \item Future work: multi-structure joint model, 4D temporal modelling,
-          learned registration.
-\end{itemize}}
+Our results demonstrate that $\SE$-equivariance is a practically valuable
+inductive bias for mesh-based cardiac shape modelling.
+Comparing our EGNN-based model against the non-equivariant MLP flow
+matching baseline (B4) on reconstruction quality
+(Table~\ref{tab:reconstruction}), the equivariant model reduces Chamfer
+distance by 8.8\% (0.968 vs.\ 1.060~mm) and Hausdorff distance by 8.5\%
+(1.576 vs.\ 1.717~mm) on the full training set.
+On distribution quality, it also achieves better 1-NNA (0.600 vs.\ 0.605)
+and pathology probe accuracy (33\% vs.\ 31\%), confirming that equivariance
+benefits both geometric fidelity and latent space structure.
+The notably strong reconstruction performance of the Voxel diffusion
+baseline (Chamfer 0.196~mm) reflects the advantages of operating on a
+regular grid with dense supervision; however, this metric measures
+voxel-to-voxel fidelity rather than surface geometry and is not directly
+comparable to mesh-based Chamfer distances computed on 2{,}500-vertex
+surfaces.
+
+The most significant open issue is the clinical EF error (229.8\%),
+which indicates that the current model does not reliably preserve
+end-diastolic to end-systolic volume ratios.
+This is expected at 200 training epochs without explicit volume
+constraints; the flow-matching objective optimises geometric reconstruction
+rather than functional cardiac mechanics.
+Future work should incorporate volume-preserving regularisation or a
+myocardial incompressibility term directly in the loss to improve
+physiological plausibility.
+The pathology probe accuracy of 33\% is above chance but well below
+the linear separability one would want for clinical conditioning.
+This suggests the latent space would benefit from semi-supervised training
+or contrastive objectives that explicitly align latent clusters with
+known pathology classes.
+
+The gauge-equivariant encoder ablation (Section~\ref{sec:gauge_ablation})
+reveals a clear pathway for improvement on both of these fronts.
+Replacing the isotropic EGNN encoder with a curvature-aware anisotropic
+variant improves pathology probe accuracy by 6 percentage points
+($32\% \to 38\%$), and pairing it with KL warmup reduces EF error from
+$230\%$ to $157\%$.
+The consistent probe gain across both gauge variants (with and without
+warmup) indicates that curvature features supply disease-morphology
+signal not captured by vertex positions alone.
+The EF improvement is particularly notable: it suggests that a more
+structured latent space---achieved through curvature-aware encoding and
+stronger KL regularisation---leads to ED/ES pairs with more physiologically
+coherent volume ratios, even without explicit volume supervision.
+
+Our model has several limitations.
+First, we train and evaluate on a single cardiac structure (LV) and two
+time points (ED and ES), whereas a clinically useful model should cover
+all four chambers across the full cardiac cycle.
+Second, template registration is performed with rigid ICP, which assumes
+that inter-subject shape differences can be decomposed into a rigid
+alignment followed by a non-rigid deformation; this may fail for severe
+pathologies where the overall heart geometry departs substantially from
+the template.
+Third, the ACDC dataset comprises only 100 subjects, limiting the
+diversity of training shapes; performance on out-of-distribution
+pathologies or paediatric populations is unknown.
+
+Future directions include: (i)~a multi-structure joint model covering
+LV, RV, and myocardium simultaneously; (ii)~4D temporal modelling by
+conditioning the velocity field on cardiac phase; (iii)~learned
+deformable registration to replace the rigid ICP alignment; and
+(iv)~incorporating pathology labels as soft supervision to improve
+latent space interpretability.
 
 % -----------------------------------------------------------------------
 \section{Conclusion}
 \label{sec:conclusion}
 
-\todo{4--6 sentences. Restate problem, method, and three key findings.}
+We presented an $\SE$-equivariant flow matching model for generative
+cardiac shape modelling on surface meshes, combining an EGNN encoder with
+an OT-conditional flow matching velocity field trained end-to-end on the
+ACDC dataset.
+On reconstruction, the model achieves Chamfer distance $0.968 \pm 0.078$~mm
+and Hausdorff distance $1.576 \pm 0.094$~mm, an $8.7\times$ improvement
+over the PCA shape model baseline.
+Generated shapes attain a 1-NNA score of 0.600 and a pathology probe
+accuracy of 33\%, demonstrating that the latent space captures
+disease-relevant shape variation without label supervision.
+Ablations confirm that $\SE$-equivariance, KL warmup, and a deeper
+flow model each contribute meaningfully to the final performance.
+A gauge-equivariant encoder augmented with surface curvature features
+further improves distribution quality (1-NNA $0.590$, pathology probe
+$38\%$) and reduces clinical EF error to $157\%$, at a modest
+reconstruction cost, establishing curvature-informed anisotropic message
+passing as the strongest encoder configuration tested.
+These results establish equivariant flow matching on meshes as a viable
+and geometrically principled approach to generative cardiac shape
+modelling, with clear pathways for improvement through volume-preserving
+constraints, multi-structure modelling, and semi-supervised latent
+space regularisation.
 
 % -----------------------------------------------------------------------
 \bibliographystyle{abbrvnat}

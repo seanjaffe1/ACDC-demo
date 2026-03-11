@@ -1,0 +1,23 @@
+wandb_project: acdc-cardiac-diffusion
+wandb_run_name: x-eigvec-egnn-flow
+wandb_entity: null  # set to your wandb username/team, or leave null to use default
+
+graph_dir: data/graphs_curvature
+out_dir: checkpoints/x_egnn
+struct: lv
+
+# Model
+model_type: x_eigvec
+hidden_dim: 128
+latent_dim: 64
+n_encoder_layers: 4
+n_flow_layers: 4
+in_node_dim: 4        # [k1, k2, H, K] — existing graphs_curvature data (chi added after rebuild)
+curvature_dim: 4      # first 4 cols [k1, k2, H, K] used for anisotropy weight
+
+# Training
+epochs: 200
+batch_size: 8
+lr: 0.0003
+weight_decay: 0.0001
+kl_weight: 0.001
